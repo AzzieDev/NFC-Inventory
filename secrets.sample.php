@@ -27,6 +27,46 @@ if (!defined('DB_CHARSET')) {
     define('DB_CHARSET', 'utf8mb4');
 }
 
+// OAuth2 / OpenID Connect (OIDC) Identity Provider Configuration
+if (!defined('OAUTH_CLIENT_ID')) {
+    define('OAUTH_CLIENT_ID', 'your-oidc-client-id');
+}
+if (!defined('OAUTH_CLIENT_SECRET')) {
+    define('OAUTH_CLIENT_SECRET', 'your-oidc-client-secret');
+}
+if (!defined('OAUTH_AUTHORIZE_URL')) {
+    define('OAUTH_AUTHORIZE_URL', 'https://auth.example.com/oauth/authorize');
+}
+if (!defined('OAUTH_TOKEN_URL')) {
+    define('OAUTH_TOKEN_URL', 'https://auth.example.com/oauth/token');
+}
+if (!defined('OAUTH_USERINFO_URL')) {
+    define('OAUTH_USERINFO_URL', 'https://auth.example.com/oauth/userinfo');
+}
+if (!defined('OAUTH_REDIRECT_URI')) {
+    define('OAUTH_REDIRECT_URI', 'https://inventory.example.com/login/callback');
+}
+if (!defined('OAUTH_ALLOWED_USER')) {
+    define('OAUTH_ALLOWED_USER', 'admin'); // Only this authorized identity/username can access the admin console
+}
+
+// Optional: Cloudflare Zero Trust / mTLS Client Authentication via File Path (.p12 / .pfx / .pem)
+// Store your binary certificate outside the web root (e.g., in the parent directory) for enterprise security:
+if (!defined('OAUTH_MTLS_CERT_PATH')) {
+    define('OAUTH_MTLS_CERT_PATH', ''); // e.g., realpath(__DIR__ . '/../cloudflare_client.p12')
+}
+if (!defined('OAUTH_MTLS_PASSPHRASE')) {
+    define('OAUTH_MTLS_PASSPHRASE', ''); // Password to decrypt your .p12 certificate or encrypted private key
+}
+if (!defined('OAUTH_MTLS_KEY_PATH')) {
+    define('OAUTH_MTLS_KEY_PATH', ''); // Optional: Separate private key file path (only if using unbundled PEM files)
+}
+
+// Alternative: Or paste multiline PEM contents directly using heredoc syntax if not using external file paths:
+if (!defined('OAUTH_MTLS_CERT')) {
+    define('OAUTH_MTLS_CERT', '');
+}
+
 // Emergency Override: Set to true to bypass admin authentication
 if (!defined('EMERGENCY_OVERRIDE')) {
     define('EMERGENCY_OVERRIDE', false);

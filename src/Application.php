@@ -53,6 +53,11 @@ class Application
             return Response::html((string) ob_get_clean(), 200);
         }, 'home');
 
+        // --- Phase 4: Lightweight OAuth2 OpenID Connect (OIDC) Authentication ---
+        $this->router->map('GET', '/login', [\App\Controllers\AuthController::class, 'login'], 'auth.login');
+        $this->router->map('GET', '/login/callback', [\App\Controllers\AuthController::class, 'callback'], 'auth.callback');
+        $this->router->map('GET', '/logout', [\App\Controllers\AuthController::class, 'logout'], 'auth.logout');
+
         // --- Phase 2: Admin Inventory Console & Tag Binding ---
         $this->router->map('GET', '/admin', [\App\Controllers\AdminController::class, 'index'], 'admin.index');
         $this->router->map('GET', '/admin/', [\App\Controllers\AdminController::class, 'index'], 'admin.index_slash');

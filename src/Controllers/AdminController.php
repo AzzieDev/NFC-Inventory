@@ -1,12 +1,13 @@
 <?php
 /**
  * NFC Inventory — Physical-to-Digital State Tracker
- * Lightweight Admin Inventory Console & Tag Binding Controller
+ * Lightweight Admin Inventory Console & Tag Binding Controller with OAuth2 Authentication Guard
  */
 declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Config\Config;
 use App\Http\Response;
 use App\Models\Tag;
 
@@ -20,10 +21,31 @@ class AdminController
     }
 
     /**
+     * Guard verifying valid administrator authentication session or EMERGENCY_OVERRIDE
+     */
+    private function requireAuth(string $basePath): ?Response
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride()) {
+            return null; // Authorised or emergency override active
+        }
+
+        $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
+        return Response::redirect($prefix . '/login', 302);
+    }
+
+    /**
      * Display inventory overview table (GET /admin or /admin/inventory)
      */
     public function index(array $params = [], string $basePath = ''): Response
     {
+        if (($redirect = $this->requireAuth($basePath)) !== null) {
+            return $redirect;
+        }
+
         $tags = $this->tagRepository->getAll();
         $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_index.php';
         
@@ -37,6 +59,10 @@ class AdminController
      */
     public function showBindForm(array $params = [], string $basePath = ''): Response
     {
+        if (($redirect = $this->requireAuth($basePath)) !== null) {
+            return $redirect;
+        }
+
         // Accept 'bind_uid', 'uid', or legacy 'bind' query parameters
         $uid = '';
         if (isset($_GET['bind_uid'])) {
@@ -61,6 +87,10 @@ class AdminController
      */
     public function saveBind(array $params = [], string $basePath = ''): Response
     {
+        if (($redirect = $this->requireAuth($basePath)) !== null) {
+            return $redirect;
+        }
+
         $uid = trim((string) ($_POST['uid'] ?? ''));
         $slug = trim((string) ($_POST['slug'] ?? ''));
         $targetUrl = trim((string) ($_POST['target_url'] ?? ''));
