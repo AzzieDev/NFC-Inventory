@@ -1,0 +1,15 @@
+# Composer dependencies
+/vendor/
+composer.lock
+
+# Database & Environment Secrets (Never commit actual secrets!)
+secrets.php
+
+# PHPUnit & Testing cache
+.phpunit.cache
+/coverage/
+.phpunit.result.cache
+
+# OS generated files
+.DS_Store
+Thumbs.db
