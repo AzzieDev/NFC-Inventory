@@ -67,6 +67,12 @@ if (!defined('OAUTH_MTLS_CERT')) {
     define('OAUTH_MTLS_CERT', '');
 }
 
+// REST API & Automation Configuration (e.g., Tasker / external scripts)
+// Required to authorize machine-to-machine read queries against the inventory lookup endpoint:
+if (!defined('API_KEY')) {
+    define('API_KEY', 'sample-secret-api-key-here');
+}
+
 // Emergency Override: Set to true to bypass admin authentication
 if (!defined('EMERGENCY_OVERRIDE')) {
     define('EMERGENCY_OVERRIDE', false);

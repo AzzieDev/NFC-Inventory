@@ -118,4 +118,14 @@ class Tag
         $stmt = $this->db->query('SELECT * FROM tags ORDER BY updated_at DESC, created_at DESC');
         return $stmt ? $stmt->fetchAll() : [];
     }
+
+    /**
+     * Permanently remove a tag record from the inventory database
+     */
+    public function delete(string $rawUid): bool
+    {
+        $normalizedUid = TagHelper::normalizeUid($rawUid);
+        $stmt = $this->db->prepare('DELETE FROM tags WHERE uid = :uid');
+        return $stmt->execute([':uid' => $normalizedUid]);
+    }
 }

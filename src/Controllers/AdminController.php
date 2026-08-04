@@ -119,4 +119,22 @@ class AdminController
         // Immediately redirect to test the live routing of the newly assigned tag!
         return Response::redirect($prefix . '/' . rawurlencode($uid), 302);
     }
+
+    /**
+     * Process tag record deletion (GET or POST /admin/inventory/delete?uid=UID)
+     */
+    public function deleteTag(array $params = [], string $basePath = ''): Response
+    {
+        if (($redirect = $this->requireAuth($basePath)) !== null) {
+            return $redirect;
+        }
+
+        $uid = trim((string) ($_GET['uid'] ?? ($_POST['uid'] ?? '')));
+        if ($uid !== '') {
+            $this->tagRepository->delete($uid);
+        }
+
+        $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
+        return Response::redirect($prefix . '/admin', 302);
+    }
 }

@@ -144,12 +144,20 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                                         <?= htmlspecialchars($status, ENT_QUOTES) ?>
                                     </span>
                                 </td>
-                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
                                     <a 
                                         href="<?= htmlspecialchars($prefix . '/admin/inventory/bind?uid=' . rawurlencode($uid), ENT_QUOTES) ?>"
                                         class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 transition inline-block"
                                     >
                                         Edit / Re-bind &rarr;
+                                    </a>
+                                    <a 
+                                        href="<?= htmlspecialchars($prefix . '/admin/inventory/delete?uid=' . rawurlencode($uid), ENT_QUOTES) ?>"
+                                        onclick="return confirm('Are you sure you want to permanently delete this tag record (<?= htmlspecialchars(addslashes($uid), ENT_QUOTES) ?>)?');"
+                                        title="Permanently remove tag"
+                                        class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/20 transition inline-block"
+                                    >
+                                        🗑️ Delete
                                     </a>
                                 </td>
                             </tr>

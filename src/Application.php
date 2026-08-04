@@ -64,6 +64,10 @@ class Application
         $this->router->map('GET', '/admin/inventory', [\App\Controllers\AdminController::class, 'showBindForm'], 'admin.bind');
         $this->router->map('GET', '/admin/inventory/bind', [\App\Controllers\AdminController::class, 'showBindForm'], 'admin.bind_get');
         $this->router->map('POST', '/admin/inventory/bind', [\App\Controllers\AdminController::class, 'saveBind'], 'admin.save_bind');
+        $this->router->map('GET|POST', '/admin/inventory/delete', [\App\Controllers\AdminController::class, 'deleteTag'], 'admin.delete');
+
+        // --- Phase 3: Automation & REST JSON Lookup API ---
+        $this->router->map('GET', '/api/v1/lookup/[*:identifier]', [\App\Controllers\ApiController::class, 'lookup'], 'api.lookup');
 
         // --- NFC Routing Engine Fallback (Must be mapped last) ---
         $this->router->map('GET', '/[*:tag_uid]', [NfcRouteController::class, 'resolveTag'], 'nfc.resolve');
