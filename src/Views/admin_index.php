@@ -1,7 +1,7 @@
 <?php
 /**
  * NFC Inventory — Physical-to-Digital State Tracker
- * Admin Inventory Table Overview & Slug Copy Dashboard
+ * Admin Console & Tag Binding Dashboard View
  */
 declare(strict_types=1);
 
@@ -9,45 +9,73 @@ if (!defined('APP_ROOT')) {
     exit('Direct access forbidden.');
 }
 
-$tags = $tags ?? [];
-$prefix = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '');
+$prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Dashboard — Admin Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <title>Admin Inventory — NFC State Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: { extend: { fontFamily: { sans: ['Outfit', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] } } }
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                }
+            }
         }
     </script>
     <style>
         body { background-color: #0b0d14; min-height: 100vh; }
         .glass { background: rgba(18, 22, 33, 0.95); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.7); }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+            100% { transform: scale(0.98); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        .animate-pulse-ring { animation: pulse-ring 2s infinite; }
     </style>
 </head>
 <body class="text-slate-100 font-sans p-4 md:p-8 min-h-screen">
     <main class="max-w-6xl mx-auto glass rounded-3xl p-6 md:p-8 space-y-6 border border-slate-700">
         
         <!-- Header -->
-        <div class="border-b border-slate-800 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="border-b border-slate-800 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Phase 2 Command Center</span>
                 <h1 class="text-2xl font-bold text-white">NFC Chip Inventory Catalog</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="<?= htmlspecialchars($prefix === '' ? '/' : $prefix, ENT_QUOTES) ?>" class="text-xs text-slate-300 hover:text-white px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 transition font-semibold">
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="<?= htmlspecialchars($prefix === '' ? '/' : $prefix, ENT_QUOTES) ?>" class="text-xs text-slate-300 hover:text-white px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 transition font-semibold">
                     &larr; Home Dashboard
                 </a>
-                <a href="<?= htmlspecialchars($prefix === '' ? '/' : $prefix, ENT_QUOTES) ?>" class="text-xs text-white px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 font-bold transition shadow-lg flex items-center gap-1.5">
-                    📡 Tap to Assign New Tag
+                <button id="adminScanBtn" onclick="triggerAdminNfcScan()" class="text-xs text-white px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 font-bold transition shadow-lg flex items-center gap-2 cursor-pointer">
+                    <span>📡 Tap to Assign or Edit Tag</span>
+                </button>
+                <a href="<?= htmlspecialchars($prefix . '/logout', ENT_QUOTES) ?>" class="text-xs text-red-400 hover:text-red-300 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 transition font-semibold">
+                    Logout
                 </a>
             </div>
+        </div>
+
+        <!-- Inline NFC Scanner Feedback Alert -->
+        <div id="adminScanFeedback" class="hidden p-4 rounded-2xl bg-indigo-950/70 border border-indigo-500/40 flex items-center justify-between gap-3 animate-pulse">
+            <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
+                <span id="adminScanText" class="text-xs md:text-sm font-semibold text-slate-200">
+                    ⚡ Admin Scanner Armed! Tap any physical NFC tag against your phone right now to open its assignment and configuration form...
+                </span>
+            </div>
+            <button onclick="document.getElementById('adminScanFeedback').classList.add('hidden')" class="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg">Cancel</button>
         </div>
 
         <!-- Inventory Table -->
@@ -67,7 +95,7 @@ $prefix = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '');
                     <?php if (empty($tags)): ?>
                         <tr>
                             <td colspan="6" class="py-8 text-center text-slate-500 text-sm">
-                                No NFC tags have been assigned or scanned into inventory yet. Tap a chip on the home screen!
+                                No NFC tags have been assigned or scanned into inventory yet. Click "Tap to Assign or Edit Tag" to get started!
                             </td>
                         </tr>
                     <?php else: ?>
@@ -118,7 +146,7 @@ $prefix = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '');
                                 </td>
                                 <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                     <a 
-                                        href="<?= htmlspecialchars($prefix . '/admin/inventory?bind=' . rawurlencode($uid), ENT_QUOTES) ?>"
+                                        href="<?= htmlspecialchars($prefix . '/admin/inventory/bind?uid=' . rawurlencode($uid), ENT_QUOTES) ?>"
                                         class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 transition inline-block"
                                     >
                                         Edit / Re-bind &rarr;
@@ -134,6 +162,47 @@ $prefix = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '');
     </main>
 
     <script>
+        // Admin Direct In-Place NFC Binding Trigger
+        async function triggerAdminNfcScan() {
+            const prefix = "<?= htmlspecialchars($prefix, ENT_QUOTES) ?>";
+            const feedback = document.getElementById('adminScanFeedback');
+            const feedbackText = document.getElementById('adminScanText');
+            const btn = document.getElementById('adminScanBtn');
+
+            // On desktop or non-Android browsers without Web NFC, transition directly to Home Scanner in Admin Bind Mode
+            if (!('NDEFReader' in window)) {
+                window.location.href = (prefix || '') + '/?mode=bind';
+                return;
+            }
+
+            try {
+                const ndef = new NDEFReader();
+                await ndef.scan();
+                
+                feedback.classList.remove('hidden');
+                btn.classList.add('animate-pulse-ring');
+                btn.innerHTML = '<span>⚡ Listening... Touch Tag Now</span>';
+
+                ndef.addEventListener("reading", ({ serialNumber }) => {
+                    feedbackText.innerHTML = '✅ Tag Scanned (<span class="font-mono text-cyan-400">' + serialNumber + '</span>). Opening configuration form...';
+                    btn.classList.remove('animate-pulse-ring');
+                    
+                    // Directly transition to admin bind form regardless of whether tag exists or is unassigned!
+                    setTimeout(() => {
+                        window.location.href = (prefix || '') + '/admin/inventory/bind?uid=' + encodeURIComponent(serialNumber);
+                    }, 400);
+                });
+
+                ndef.addEventListener("error", () => {
+                    feedbackText.innerHTML = '❌ Failed to read NFC chip. Please hold your phone steady and try tapping again.';
+                });
+
+            } catch (error) {
+                // If permission denied or unavailable, cleanly fallback to home bind mode
+                window.location.href = (prefix || '') + '/?mode=bind';
+            }
+        }
+
         function copySlugLink(slug, btnElement) {
             const origin = window.location.origin;
             const prefix = "<?= htmlspecialchars($prefix, ENT_QUOTES) ?>";
