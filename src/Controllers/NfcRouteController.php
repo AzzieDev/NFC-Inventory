@@ -47,6 +47,7 @@ class NfcRouteController
     )]
     public function resolveTag(string $rawUid, string $basePath = ''): Response
     {
+        $rawUid = rawurldecode($rawUid);
         $normalizedUid = TagHelper::normalizeUid($rawUid);
         $isHardwareSerial = TagHelper::isHardwareSerial($normalizedUid);
         $displayUid = TagHelper::formatForDisplay($normalizedUid);

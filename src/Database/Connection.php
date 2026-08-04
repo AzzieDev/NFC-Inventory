@@ -1,7 +1,7 @@
 <?php
 /**
  * NFC Inventory — Physical-to-Digital State Tracker
- * PDO Database Connection Factory
+ * PDO Database Connection Factory with Auto-Schema Initialization
  */
 declare(strict_types=1);
 
@@ -16,9 +16,10 @@ class Connection
 {
     private static ?PDO $instance = null;
     private static ?PDO $testOverride = null;
+    private static bool $schemaInitialized = false;
 
     /**
-     * Retrieve active PDO database connection
+     * Retrieve active PDO database connection and guarantee tables exist
      */
     public static function getPdo(): PDO
     {
@@ -45,10 +46,37 @@ class Connection
 
         try {
             self::$instance = new PDO($dsn, (string) $user, (string) $pass, $options);
+            
+            // Automatically initialize database schema tables on first connection if they do not exist
+            self::initSchema(self::$instance);
+
             return self::$instance;
         } catch (PDOException $e) {
             throw new RuntimeException('Database connection failed: ' . $e->getMessage(), (int) $e->getCode());
         }
+    }
+
+    /**
+     * Automatically parse and execute schema.sql (CREATE TABLE IF NOT EXISTS) upon live database connection
+     */
+    private static function initSchema(PDO $pdo): void
+    {
+        if (self::$schemaInitialized) {
+            return;
+        }
+
+        $sqlPath = (defined('APP_ROOT') ? APP_ROOT : realpath(__DIR__ . '/../..')) . '/sql/schema.sql';
+        if (file_exists($sqlPath)) {
+            $sql = (string) file_get_contents($sqlPath);
+            $statements = array_filter(array_map('trim', explode(';', $sql)));
+            foreach ($statements as $stmt) {
+                if ($stmt !== '' && str_starts_with(strtoupper(ltrim($stmt)), 'CREATE TABLE')) {
+                    $pdo->exec($stmt);
+                }
+            }
+        }
+
+        self::$schemaInitialized = true;
     }
 
     /**
@@ -60,11 +88,12 @@ class Connection
     }
 
     /**
-     * Clear established connection
+     * Clear established connection and reset schema verification state
      */
     public static function reset(): void
     {
         self::$instance = null;
         self::$testOverride = null;
+        self::$schemaInitialized = false;
     }
 }
