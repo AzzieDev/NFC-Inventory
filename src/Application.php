@@ -47,7 +47,10 @@ class Application
 
         // --- Catalog / Index Home ---
         $this->router->map('GET', '/', function () {
-            return Response::html('<h1>NFC Inventory Tracker</h1><p>Visit <a href="./docs">/docs</a> for OpenAPI specifications.</p>');
+            $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/..') . '/src/Views/home.php';
+            ob_start();
+            include $viewPath;
+            return Response::html((string) ob_get_clean(), 200);
         }, 'home');
 
         // --- NFC Routing Engine Fallback (Must be mapped last) ---
