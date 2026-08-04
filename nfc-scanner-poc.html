@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Hardware Serial Scanner — Proof of Concept</title>
+    <!-- Modern Typography: Google Fonts Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        gelato: {
+                            500: '#ff2e93',
+                            600: '#ff0077',
+                            800: '#8c003e',
+                        },
+                        cyan: {
+                            400: '#00f2fe',
+                            500: '#00c6ff',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0d0f17;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(255, 46, 147, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(0, 242, 254, 0.15) 0px, transparent 50%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(23, 27, 40, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #ff2e93 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 46, 147, 0.4); }
+            50% { transform: scale(1.03); box-shadow: 0 0 35px rgba(0, 242, 254, 0.6); }
+        }
+        .pulse-button {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 font-sans antialiased p-4 md:p-8 flex flex-col items-center justify-center min-h-screen">
+    <div class="max-w-2xl w-full mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                Web NFC Capability Test
+            </div>
+            <h1 class="text-3xl md:text-5xl font-bold tracking-tight">
+                NFC Tag <span class="gradient-text">Serial Scanner</span>
+            </h1>
+            <p class="text-slate-400 text-sm md:text-base max-w-lg mx-auto">
+                Test live hardware NDEF & Serial Number (UID) extraction directly from your Android device via Web NFC.
+            </p>
+        </header>
+
+        <!-- Main Interface Card -->
+        <main class="glass-panel rounded-2xl p-6 md:p-8 space-y-6 border border-slate-700/50">
+            
+            <!-- Compatibility Banner -->
+            <div id="statusBanner" class="p-4 rounded-xl flex items-center gap-4 text-sm bg-slate-800/50 border border-slate-700">
+                <div id="statusIcon" class="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+                    <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 id="statusTitle" class="font-semibold text-slate-200">Checking Web NFC Support...</h3>
+                    <p id="statusMsg" class="text-slate-400 text-xs mt-0.5">Please access this demonstration via Chrome on Android.</p>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="flex flex-col items-center justify-center py-4">
+                <button id="scanButton" onclick="startNFCScan()" class="pulse-button w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-gelato-600 to-cyan-500 text-white font-bold text-lg shadow-lg hover:brightness-110 active:scale-95 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:animation-none flex items-center justify-center gap-3">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                    </svg>
+                    <span>Tap to Start NFC Scanner</span>
+                </button>
+                <p id="scanningSubtext" class="text-xs text-slate-400 mt-3 hidden animate-pulse">
+                    ⚡ Scanning active! Hold an NFC tag (or Protein Gelato lid) against the back of your phone...
+                </p>
+            </div>
+
+            <!-- Scan Output display -->
+            <div id="resultsArea" class="space-y-4 pt-4 border-t border-slate-800/80">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Scanned Inventory Log</h2>
+                    <span id="scanCount" class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md">0 Tags Scanned</span>
+                </div>
+
+                <div id="logList" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    <!-- Empty state -->
+                    <div id="emptyLog" class="text-center py-8 border border-dashed border-slate-800 rounded-xl">
+                        <p class="text-slate-500 text-sm">No physical NFC tags detected yet.</p>
+                        <p class="text-slate-600 text-xs mt-1">Click the button above and tap an NTAG chip to extract its serial.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Technical Guide & Explanation -->
+        <footer class="glass-panel rounded-xl p-5 text-xs text-slate-400 border border-slate-800 space-y-2">
+            <h4 class="font-bold text-slate-300 uppercase tracking-wider">💡 Android Scanner Diagnostics Guide</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-400">
+                <li><strong>Browser Requirement:</strong> Must be opened in <strong>Chrome for Android</strong> (iOS Safari does not yet expose Web NFC hardware access to standard JavaScript).</li>
+                <li><strong>Secure Context (HTTPS/Localhost):</strong> Browser hardware security mandates this page be served via HTTPS or directly over <code class="bg-slate-800 text-cyan-400 px-1 rounded">localhost</code> / <code class="bg-slate-800 text-cyan-400 px-1 rounded">127.0.0.1</code>.</li>
+                <li><strong>Testing via Laragon / Local IP:</strong> When opening via local LAN IP (e.g., <code class="bg-slate-800 px-1 rounded">http://192.168.1.50</code>) on Android Chrome, navigate to <code class="text-rose-400 font-mono bg-slate-900 px-1 py-0.5 rounded">chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>, add your server URL, and enable it so Chrome unlocks physical NFC scanning!</li>
+            </ul>
+        </footer>
+    </div>
+
+    <!-- JavaScript Web NFC Implementation -->
+    <script>
+        let scanCounter = 0;
+        let ndefInstance = null;
+
+        const statusBanner = document.getElementById('statusBanner');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusMsg = document.getElementById('statusMsg');
+        const scanButton = document.getElementById('scanButton');
+        const scanningSubtext = document.getElementById('scanningSubtext');
+        const logList = document.getElementById('logList');
+        const emptyLog = document.getElementById('emptyLog');
+        const scanCount = document.getElementById('scanCount');
+
+        // Check Web NFC availability on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            if ("NDEFReader" in window) {
+                statusBanner.className = "p-4 rounded-xl flex items-center gap-4 text-sm bg-emerald-950/40 border border-emerald-500/30";
+                statusIcon.className = "p-2 rounded-lg bg-emerald-500/20 text-emerald-400";
+                statusIcon.innerHTML = `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
+                statusTitle.textContent = "Web NFC Capability Enabled";
+                statusMsg.textContent = "Your Android device & browser support native NFC serial reading. Ready to scan!";
+            } else {
+                statusBanner.className = "p-4 rounded-xl flex items-center gap-4 text-sm bg-rose-950/40 border border-rose-500/30";
+                statusIcon.className = "p-2 rounded-lg bg-rose-500/20 text-rose-400";
+                statusIcon.innerHTML = `<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                statusTitle.textContent = "Web NFC Not Available";
+                statusMsg.textContent = "Please view this page using Google Chrome on an Android device (via HTTPS, localhost, or trusted origin).";
+                scanButton.disabled = true;
+                scanButton.classList.remove('pulse-button');
+            }
+        });
+
+        // Normalize raw serial numbers (removes MAC formatting and makes lowercase)
+        function normalizeSerial(rawSerial) {
+            if (!rawSerial) return "UNKNOWN";
+            return rawSerial.replace(/[:\-]/g, "").toLowerCase();
+        }
+
+        async function startNFCScan() {
+            try {
+                if (!ndefInstance) {
+                    ndefInstance = new NDEFReader();
+                }
+                
+                await ndefInstance.scan();
+                
+                // Update UI for active scan state
+                scanButton.innerHTML = `<svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>Scanning for Tags... Tap Now</span>`;
+                scanButton.classList.add("ring-2", "ring-cyan-400", "ring-offset-2", "ring-offset-slate-900");
+                scanningSubtext.classList.remove("hidden");
+
+                ndefInstance.onreadingerror = () => {
+                    alert("⚠️ Tag read error. Ensure the NFC chip is against the back center/top of your phone and hold still.");
+                };
+
+                ndefInstance.onreading = (event) => {
+                    // Extract exact hardware NDEF serial number!
+                    const rawSerial = event.serialNumber || "No UID Read (NDEF Only)";
+                    const normalized = normalizeSerial(event.serialNumber);
+                    const timestamp = new Date().toLocaleTimeString();
+                    
+                    // Parse NDEF records if available
+                    let ndefData = "No existing URLs or NDEF records on chip.";
+                    if (event.message && event.message.records && event.message.records.length > 0) {
+                        const records = [];
+                        for (const record of event.message.records) {
+                            if (record.recordType === "url" || record.recordType === "text") {
+                                const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+                                records.push(`[${record.recordType.toUpperCase()}]: ${textDecoder.decode(record.data)}`);
+                            } else {
+                                records.push(`[Type: ${record.recordType}] (${record.data ? record.data.byteLength : 0} bytes)`);
+                            }
+                        }
+                        ndefData = records.join("<br>");
+                    }
+
+                    addScanLog(rawSerial, normalized, ndefData, timestamp);
+                };
+
+            } catch (error) {
+                console.error("Error starting Web NFC scanner: ", error);
+                alert(`❌ Failed to initiate NFC hardware scanner: ${error.message}`);
+                scanButton.innerHTML = `<span>Try restarting Scan</span>`;
+            }
+        }
+
+        function addScanLog(raw, normalized, ndefData, time) {
+            if (emptyLog) emptyLog.style.display = 'none';
+            scanCounter++;
+            scanCount.textContent = `${scanCounter} Tag${scanCounter === 1 ? '' : 's'} Scanned`;
+
+            const card = document.createElement('div');
+            card.className = "p-4 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-gelato-500/50 transition-all duration-300 shadow-inner flex flex-col gap-2";
+            card.innerHTML = `
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400"></span>
+                        <span class="font-bold text-slate-100 font-mono text-base tracking-wide">${raw}</span>
+                    </div>
+                    <span class="text-xs text-slate-500 font-mono">${time}</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
+                    <div class="bg-slate-800/60 p-2 rounded-lg border border-slate-700/60">
+                        <span class="text-slate-400 block mb-0.5 uppercase tracking-wider font-semibold text-[10px]">Normalized DB Index</span>
+                        <code class="text-emerald-400 font-mono text-sm font-bold">${normalized}</code>
+                    </div>
+                    <div class="bg-slate-800/60 p-2 rounded-lg border border-slate-700/60 overflow-hidden text-ellipsis">
+                        <span class="text-slate-400 block mb-0.5 uppercase tracking-wider font-semibold text-[10px]">Baked NDEF Data / URLs</span>
+                        <div class="text-slate-300 font-mono text-[11px] truncate">${ndefData}</div>
+                    </div>
+                </div>
+            `;
+
+            // Insert at top of list
+            logList.insertBefore(card, logList.firstChild);
+        }
+    </script>
+</body>
+</html>
