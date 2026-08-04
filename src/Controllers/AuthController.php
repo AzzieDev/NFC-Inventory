@@ -40,7 +40,7 @@ class AuthController
             'state' => bin2hex(random_bytes(16))
         ]);
 
-        $_SESSION['oauth_state'] = $query; // Basic protection against cross-site request forgery
+        $_SESSION['oauth_state'] = $query;
         return Response::redirect(rtrim((string) $authorizeUrl, '?') . '?' . $query, 302);
     }
 
@@ -61,7 +61,7 @@ class AuthController
         $redirectUri = Config::get('OAUTH_REDIRECT_URI', 'https://inventory.example.com/login/callback');
         $allowedUser = Config::get('OAUTH_ALLOWED_USER', 'admin');
 
-        // 1. Exchange authorization code for access token (with cURL or fallback stream wrapper)
+        // 1. Exchange authorization code for access token via standard form POST body
         $postData = [
             'grant_type' => 'authorization_code',
             'client_id' => $clientId,
@@ -71,16 +71,45 @@ class AuthController
         ];
 
         $tokenResponse = $this->httpPost((string) $tokenUrl, $postData);
-        $tokenJson = json_decode((string) $tokenResponse, true);
+        $tokenJson = json_decode((string) $tokenResponse['body'], true);
 
         $accessToken = $tokenJson['access_token'] ?? null;
         if (!$accessToken && !Config::isEmergencyOverride()) {
-            return Response::html('<h1>OAuth Token Error</h1><p>Could not verify authorization code with identity server.</p><pre>' . htmlspecialchars((string) $tokenResponse) . '</pre>', 401);
+            $errorDetails = sprintf(
+                "HTTP Status: %s\ncURL Diagnostics: %s\nRaw Response Body:\n%s",
+                $tokenResponse['http_code'] ?: 'N/A',
+                $tokenResponse['error'] ?: 'None',
+                $tokenResponse['body'] !== '' ? $tokenResponse['body'] : '<Empty Response>'
+            );
+
+            $html = '
+            <!DOCTYPE html>
+            <html lang="en" class="dark">
+            <head>
+                <meta charset="UTF-8">
+                <title>OAuth Token Exchange Error</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>body { background-color: #0b0d14; }</style>
+            </head>
+            <body class="text-slate-100 p-8 flex items-center justify-center min-h-screen">
+                <main class="max-w-2xl w-full mx-auto bg-slate-900 border border-red-500/30 rounded-2xl p-6 space-y-4 shadow-xl">
+                    <h1 class="text-2xl font-bold text-red-400">OAuth Token Error</h1>
+                    <p class="text-slate-300 text-sm">Cloudflare mTLS authorization succeeded, but the Identity Provider declined the token exchange request.</p>
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto">
+                        <span class="text-xs text-slate-500 uppercase tracking-wider block mb-1">Diagnostic Output</span>
+                        <pre class="text-xs text-amber-300 font-mono whitespace-pre-wrap">' . htmlspecialchars($errorDetails, ENT_QUOTES) . '</pre>
+                    </div>
+                    <a href="javascript:history.back()" class="inline-block text-xs bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition">&larr; Back to Login</a>
+                </main>
+            </body>
+            </html>';
+
+            return Response::html($html, 401);
         }
 
         // 2. Fetch authenticated user profile identity from userinfo endpoint
         $userInfoResponse = $this->httpGet((string) $userInfoUrl, (string) $accessToken);
-        $userJson = json_decode((string) $userInfoResponse, true);
+        $userJson = json_decode((string) $userInfoResponse['body'], true);
 
         // Check various standard OpenID claim fields for user identity
         $username = strtolower((string) ($userJson['preferred_username'] ?? ($userJson['username'] ?? ($userJson['name'] ?? ($userJson['email'] ?? '')))));
@@ -122,7 +151,6 @@ class AuthController
         $passphrase = (string) Config::get('OAUTH_MTLS_PASSPHRASE', '');
         $certPath   = trim((string) Config::get('OAUTH_MTLS_CERT_PATH', ''));
 
-        // 1. If an external binary file path (like ../client_cert.p12) is provided, inspect and bind directly
         if ($certPath !== '' && file_exists($certPath)) {
             $ext = strtolower(pathinfo($certPath, PATHINFO_EXTENSION));
             $certType = ($ext === 'p12' || $ext === 'pfx') ? 'P12' : 'PEM';
@@ -133,11 +161,10 @@ class AuthController
                 'cert_type'  => $certType,
                 'key_file'   => ($keyPath !== '' && file_exists($keyPath)) ? $keyPath : null,
                 'passphrase' => $passphrase,
-                'is_temp'    => false // Preserve physical files on disk!
+                'is_temp'    => false
             ];
         }
 
-        // 2. Otherwise fallback to dynamically generating temporary files from inline PEM configuration strings
         $certString = trim((string) Config::get('OAUTH_MTLS_CERT', ''));
         if ($certString === '') {
             return ['cert_file' => null, 'cert_type' => 'PEM', 'key_file' => null, 'passphrase' => '', 'is_temp' => false];
@@ -162,13 +189,10 @@ class AuthController
             'cert_type'  => 'PEM',
             'key_file'   => $tempKey !== false ? $tempKey : null,
             'passphrase' => $passphrase,
-            'is_temp'    => true // Ensure temporary string dumps are purged after execution!
+            'is_temp'    => true
         ];
     }
 
-    /**
-     * Cleanly purge temporary mTLS certificate files from disk (while protecting permanent file paths)
-     */
     private function cleanupMtlsFiles(array $mtls): void
     {
         if (!empty($mtls['is_temp'])) {
@@ -183,11 +207,13 @@ class AuthController
 
     /**
      * Helper to execute HTTP POST using cURL or fallback stream wrapper with Cloudflare mTLS support
+     * @return array{body: string, error: string, http_code: int|string}
      */
-    private function httpPost(string $url, array $data): string
+    private function httpPost(string $url, array $data, array $extraHeaders = []): array
     {
         $body = http_build_query($data);
         $mtls = $this->prepareMtlsFiles();
+        $headers = array_merge(['Accept: application/json'], $extraHeaders);
 
         try {
             if (function_exists('curl_init')) {
@@ -195,7 +221,7 @@ class AuthController
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 
                 if ($mtls['cert_file'] !== null) {
@@ -214,11 +240,17 @@ class AuthController
                 }
 
                 $result = curl_exec($ch);
+                $error  = curl_error($ch);
+                $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
-                return (string) $result;
+
+                return [
+                    'body' => (string) $result,
+                    'error' => (string) $error,
+                    'http_code' => $status
+                ];
             }
 
-            // Fallback for environments lacking PHP cURL extension
             $sslOpts = [];
             if ($mtls['cert_file'] !== null) {
                 $sslOpts['local_cert'] = $mtls['cert_file'];
@@ -230,16 +262,34 @@ class AuthController
                 }
             }
 
+            $headerStr = "Content-type: application/x-www-form-urlencoded\r\nAccept: application/json\r\n";
+            foreach ($extraHeaders as $h) {
+                $headerStr .= $h . "\r\n";
+            }
+
             $context = stream_context_create([
                 'http' => [
                     'method'  => 'POST',
-                    'header'  => "Content-type: application/x-www-form-urlencoded\r\nAccept: application/json\r\n",
+                    'header'  => $headerStr,
                     'content' => $body,
-                    'timeout' => 15
+                    'timeout' => 15,
+                    'ignore_errors' => true
                 ],
                 'ssl' => $sslOpts
             ]);
-            return (string) @file_get_contents($url, false, $context);
+            
+            $result = @file_get_contents($url, false, $context);
+            $httpCode = 0;
+            if (!empty($http_response_header) && isset($http_response_header[0])) {
+                preg_match('/HTTP\/\S+\s+(\d+)/', $http_response_header[0], $matches);
+                $httpCode = isset($matches[1]) ? (int) $matches[1] : 0;
+            }
+
+            return [
+                'body' => (string) $result,
+                'error' => $result === false ? 'Stream context execution failure' : '',
+                'http_code' => $httpCode
+            ];
         } finally {
             $this->cleanupMtlsFiles($mtls);
         }
@@ -247,8 +297,9 @@ class AuthController
 
     /**
      * Helper to execute HTTP GET with Bearer access token using cURL or fallback stream wrapper with mTLS support
+     * @return array{body: string, error: string, http_code: int|string}
      */
-    private function httpGet(string $url, string $token): string
+    private function httpGet(string $url, string $token): array
     {
         $header = "Authorization: Bearer " . $token . "\r\nAccept: application/json\r\n";
         $mtls = $this->prepareMtlsFiles();
@@ -276,8 +327,15 @@ class AuthController
                 }
 
                 $result = curl_exec($ch);
+                $error  = curl_error($ch);
+                $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 curl_close($ch);
-                return (string) $result;
+
+                return [
+                    'body' => (string) $result,
+                    'error' => (string) $error,
+                    'http_code' => $status
+                ];
             }
 
             $sslOpts = [];
@@ -295,11 +353,23 @@ class AuthController
                 'http' => [
                     'method'  => 'GET',
                     'header'  => $header,
-                    'timeout' => 15
+                    'timeout' => 15,
+                    'ignore_errors' => true
                 ],
                 'ssl' => $sslOpts
             ]);
-            return (string) @file_get_contents($url, false, $context);
+            $result = @file_get_contents($url, false, $context);
+            $httpCode = 0;
+            if (!empty($http_response_header) && isset($http_response_header[0])) {
+                preg_match('/HTTP\/\S+\s+(\d+)/', $http_response_header[0], $matches);
+                $httpCode = isset($matches[1]) ? (int) $matches[1] : 0;
+            }
+
+            return [
+                'body' => (string) $result,
+                'error' => $result === false ? 'Stream context execution failure' : '',
+                'http_code' => $httpCode
+            ];
         } finally {
             $this->cleanupMtlsFiles($mtls);
         }
