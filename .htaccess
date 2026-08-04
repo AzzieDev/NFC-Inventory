@@ -1,0 +1,22 @@
+# Prevent directory listing
+Options -Indexes
+
+# Defense-in-Depth: Explicitly block direct HTTP web access to sensitive internal files and folders
+<FilesMatch "^(secrets\.php|secrets\.sample\.php|composer\.json|composer\.lock|phpunit\.xml|\.gitignore|\.env)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Block web access to application source directories
+RewriteEngine On
+RewriteRule ^(src|vendor|tests|sql|config|\.git|\.agents)/ - [F,L]
+
+# Front Controller Pattern: Route all dynamic application paths through index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
