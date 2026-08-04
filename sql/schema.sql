@@ -22,6 +22,5 @@ CREATE TABLE IF NOT EXISTS tags (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_slug (slug),
     INDEX idx_post_id (post_id),
-    INDEX idx_status (status),
-    CONSTRAINT fk_tags_post FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE SET NULL
+    INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

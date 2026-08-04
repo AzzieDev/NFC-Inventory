@@ -70,8 +70,7 @@ abstract class TestCase extends PHPUnitTestCase
                 target_url TEXT DEFAULT NULL,
                 status TEXT NOT NULL DEFAULT 'available',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE SET NULL
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
         ");
     }
