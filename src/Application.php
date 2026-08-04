@@ -53,8 +53,11 @@ class Application
             return Response::html((string) ob_get_clean(), 200);
         }, 'home');
 
-        // --- Simple Admin Tag Binding & Update Wizard ---
+        // --- Phase 2: Admin Inventory Console & Tag Binding ---
+        $this->router->map('GET', '/admin', [\App\Controllers\AdminController::class, 'index'], 'admin.index');
+        $this->router->map('GET', '/admin/', [\App\Controllers\AdminController::class, 'index'], 'admin.index_slash');
         $this->router->map('GET', '/admin/inventory', [\App\Controllers\AdminController::class, 'showBindForm'], 'admin.bind');
+        $this->router->map('GET', '/admin/inventory/bind', [\App\Controllers\AdminController::class, 'showBindForm'], 'admin.bind_get');
         $this->router->map('POST', '/admin/inventory/bind', [\App\Controllers\AdminController::class, 'saveBind'], 'admin.save_bind');
 
         // --- NFC Routing Engine Fallback (Must be mapped last) ---

@@ -1,7 +1,7 @@
 <?php
 /**
  * NFC Inventory — Physical-to-Digital State Tracker
- * Lightweight Admin Tag Binding Controller
+ * Lightweight Admin Inventory Console & Tag Binding Controller
  */
 declare(strict_types=1);
 
@@ -20,11 +20,25 @@ class AdminController
     }
 
     /**
-     * Display simple tag assignment view (GET /admin/inventory?bind=UID)
+     * Display inventory overview table (GET /admin or /admin/inventory)
+     */
+    public function index(array $params = [], string $basePath = ''): Response
+    {
+        $tags = $this->tagRepository->getAll();
+        $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_index.php';
+        
+        ob_start();
+        include $viewPath;
+        return Response::html((string) ob_get_clean(), 200);
+    }
+
+    /**
+     * Display simple tag assignment view (GET /admin/inventory/bind?uid=UID)
      */
     public function showBindForm(array $params = [], string $basePath = ''): Response
     {
-        $uid = isset($_GET['bind']) ? rawurldecode(trim((string) $_GET['bind'])) : '';
+        // Accept either 'uid' or legacy 'bind' query parameters
+        $uid = isset($_GET['uid']) ? rawurldecode(trim((string) $_GET['uid'])) : (isset($_GET['bind']) ? rawurldecode(trim((string) $_GET['bind'])) : '');
         $existing = $uid !== '' ? $this->tagRepository->findByUidOrSlug($uid) : null;
 
         $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_bind.php';
@@ -52,14 +66,15 @@ class AdminController
             $slug = 'item-' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $uid));
         }
 
-        // Save tag in database with assigned target destination
-        $this->tagRepository->saveTag([
-            'uid' => $uid,
-            'slug' => $slug,
-            'friendly_name' => $friendlyName,
-            'target_url' => $targetUrl,
-            'status' => 'active'
-        ]);
+        // Save tag in database repository using positional parameter sign-off
+        $this->tagRepository->save(
+            $uid,
+            null,
+            $friendlyName,
+            'active',
+            $slug,
+            $targetUrl
+        );
 
         $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
         

@@ -53,7 +53,7 @@ $formAction = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '
             <!-- Hardware UID (ReadOnly / Pre-filled) -->
             <div>
                 <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Hardware Chip UID / Serial</label>
-                <input type="text" name="uid" value="<?= htmlspecialchars($uid, ENT_QUOTES) ?>" required readonly class="w-full bg-slate-950/80 border border-indigo-500/30 rounded-xl px-4 py-3 font-mono text-cyan-400 font-bold text-base focus:outline-none">
+                <input type="text" name="uid" value="<?= htmlspecialchars($uid, ENT_QUOTES) ?>" required readonly class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 font-mono text-white font-bold text-base select-all cursor-not-allowed opacity-100 focus:outline-none transition">
             </div>
 
             <!-- Friendly Slug with Auto-Gen -->

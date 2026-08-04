@@ -107,4 +107,15 @@ class Tag
         $stmt = $this->db->prepare("UPDATE tags SET post_id = NULL, target_url = NULL, status = 'available' WHERE uid = :uid");
         return $stmt->execute([':uid' => $normalizedUid]);
     }
+
+    /**
+     * Retrieve all inventory tag records ordered by latest updates
+     *
+     * @return array<int, array>
+     */
+    public function getAll(): array
+    {
+        $stmt = $this->db->query('SELECT * FROM tags ORDER BY updated_at DESC, created_at DESC');
+        return $stmt ? $stmt->fetchAll() : [];
+    }
 }
