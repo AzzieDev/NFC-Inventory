@@ -1,6 +1,6 @@
 {
-    "name": "azziedevelopment/nfc-recipe-organizer",
-    "description": "Lightweight, zero-bloat, open-source PHP web application for managing recipes and dynamically linking them to physical NFC tags.",
+    "name": "azziedevelopment/nfc-inventory",
+    "description": "Lightweight, zero-bloat, open-source PHP web application for managing inventory items and dynamically linking them to physical NFC tags.",
     "type": "project",
     "license": "MIT",
     "require": {

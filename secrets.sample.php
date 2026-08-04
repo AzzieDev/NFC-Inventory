@@ -32,6 +32,11 @@ if (!defined('EMERGENCY_OVERRIDE')) {
     define('EMERGENCY_OVERRIDE', false);
 }
 
+// Enable rich diagnostic exception reporting and disk logging (Set to false in high-security production environments)
+if (!defined('APP_DEBUG')) {
+    define('APP_DEBUG', true);
+}
+
 // Set application timezone to Eastern Time (America/New_York)
 date_default_timezone_set('America/New_York');
 

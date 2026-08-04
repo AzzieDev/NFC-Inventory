@@ -15,10 +15,10 @@ class DocsController
 {
     #[OA\Get(
         path: '/api-docs.json',
-        summary: 'Generate OpenAPI 3.0 specification in standard JSON format',
+        summary: 'Generate OpenAPI 3.0 specification dynamically on the fly at runtime',
         tags: ['System & Documentation'],
         responses: [
-            new OA\Response(response: 200, description: 'Successful OpenAPI schema generation')
+            new OA\Response(response: 200, description: 'Successful on-the-fly OpenAPI schema generation')
         ]
     )]
     public function getJson(): Response
@@ -26,7 +26,7 @@ class DocsController
         $srcDir = defined('APP_ROOT') ? APP_ROOT . '/src' : __DIR__ . '/..';
         $openapi = Generator::scan([$srcDir]);
         
-        return Response::json($openapi->toJson());
+        return Response::json($openapi->toJson(), 200);
     }
 
     #[OA\Get(
