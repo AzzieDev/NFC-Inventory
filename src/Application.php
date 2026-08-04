@@ -16,6 +16,7 @@ use App\Http\Response;
 class Application
 {
     private AltoRouter $router;
+    private string $basePath = '';
 
     public function __construct(string $rootPath = __DIR__ . '/..', bool $testMode = false)
     {
@@ -23,11 +24,12 @@ class Application
 
         $this->router = new AltoRouter();
         
-        // Ensure automatic base path extraction if deployed in a Laragon sub-directory
+        // Ensure automatic base path extraction if deployed in a Laragon or sub-directory environment
         if (!$testMode && isset($_SERVER['SCRIPT_NAME'])) {
-            $basePath = dirname($_SERVER['SCRIPT_NAME']);
-            if ($basePath !== '/' && $basePath !== '\\' && $basePath !== '.') {
-                $this->router->setBasePath((string) $basePath);
+            $path = dirname($_SERVER['SCRIPT_NAME']);
+            if ($path !== '/' && $path !== '\\' && $path !== '.') {
+                $this->basePath = (string) $path;
+                $this->router->setBasePath($this->basePath);
             }
         }
 
@@ -67,11 +69,10 @@ class Application
             [$controllerClass, $methodName] = $match['target'];
             $controller = new $controllerClass();
 
-            $basePath = $this->router->getBasePath();
             if ($controllerClass === NfcRouteController::class) {
-                $response = $controller->$methodName((string) ($match['params']['tag_uid'] ?? ''), $basePath);
+                $response = $controller->$methodName((string) ($match['params']['tag_uid'] ?? ''), $this->basePath);
             } else {
-                $response = $controller->$methodName($match['params'], $basePath);
+                $response = $controller->$methodName($match['params'], $this->basePath);
             }
         } else {
             // Unmatched Route / 404 Not Found
@@ -83,6 +84,14 @@ class Application
         }
 
         return $response;
+    }
+
+    /**
+     * Expose active base path string
+     */
+    public function getBasePath(): string
+    {
+        return $this->basePath;
     }
 
     /**
