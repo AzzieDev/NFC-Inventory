@@ -37,8 +37,16 @@ class AdminController
      */
     public function showBindForm(array $params = [], string $basePath = ''): Response
     {
-        // Accept either 'uid' or legacy 'bind' query parameters
-        $uid = isset($_GET['uid']) ? rawurldecode(trim((string) $_GET['uid'])) : (isset($_GET['bind']) ? rawurldecode(trim((string) $_GET['bind'])) : '');
+        // Accept 'bind_uid', 'uid', or legacy 'bind' query parameters
+        $uid = '';
+        if (isset($_GET['bind_uid'])) {
+            $uid = rawurldecode(trim((string) $_GET['bind_uid']));
+        } elseif (isset($_GET['uid'])) {
+            $uid = rawurldecode(trim((string) $_GET['uid']));
+        } elseif (isset($_GET['bind'])) {
+            $uid = rawurldecode(trim((string) $_GET['bind']));
+        }
+
         $existing = $uid !== '' ? $this->tagRepository->findByUidOrSlug($uid) : null;
 
         $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_bind.php';
