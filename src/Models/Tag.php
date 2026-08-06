@@ -238,4 +238,106 @@ class Tag
             return false;
         }
     }
+
+    /**
+     * Automatically update target_url references across inventory tags when a content file is renamed
+     */
+    public function updateTargetUrlReferences(string $oldSlug, string $newSlug): int
+    {
+        try {
+            $rawOld = trim($oldSlug, '/.');
+            $rawNew = trim($newSlug, '/.');
+            
+            $encodedOld = str_replace('%2F', '/', rawurlencode($rawOld));
+            $encodedNew = str_replace('%2F', '/', rawurlencode($rawNew));
+            
+            $stmt = $this->db->query("SELECT uid, target_url, friendly_name FROM tags WHERE target_url IS NOT NULL AND target_url != ''");
+            if (!$stmt) {
+                return 0;
+            }
+            $rows = $stmt->fetchAll();
+            $updatedCount = 0;
+            
+            $stmtUpdate = $this->db->prepare("UPDATE tags SET target_url = :new_url WHERE uid = :uid");
+
+            foreach ($rows as $row) {
+                $currentUrl = (string) $row['target_url'];
+                $newUrl = $currentUrl;
+                
+                // Replace encoded matches (e.g. /content/old%20slug or /content/old_slug)
+                $newUrl = str_ireplace('/content/' . $encodedOld, '/content/' . $encodedNew, $newUrl);
+                // Replace unencoded matches if present (e.g. /content/old slug)
+                $newUrl = str_ireplace('/content/' . $rawOld, '/content/' . $encodedNew, $newUrl);
+                // Replace iframe browser wrapped parameters if present
+                $newUrl = str_ireplace('content%2F' . rawurlencode($encodedOld), 'content%2F' . rawurlencode($encodedNew), $newUrl);
+                $newUrl = str_ireplace('content%2F' . rawurlencode($rawOld), 'content%2F' . rawurlencode($encodedNew), $newUrl);
+                
+                if (strcasecmp($currentUrl, $newUrl) !== 0) {
+                    $stmtUpdate->execute([
+                        ':new_url' => $newUrl,
+                        ':uid'     => $row['uid']
+                    ]);
+                    $this->recordActivity((string) $row['uid'], 'updated', $currentUrl, $newUrl, $row['friendly_name'] ?? null, $row['friendly_name'] ?? null);
+                    $updatedCount++;
+                }
+            }
+            
+            return $updatedCount;
+        } catch (\PDOException $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Locate existing tag records targeting a specific URL or relative path
+     *
+     * @return array<int, array{uid: string, friendly_name: string, target_url: string}>
+     */
+    public function findTagsByTargetUrl(string $targetUrl, string $excludeUid = ''): array
+    {
+        try {
+            $cleanTarget = rtrim(trim($targetUrl), '/');
+            if ($cleanTarget === '' || $cleanTarget === 'http:' || $cleanTarget === 'https:') {
+                return [];
+            }
+            
+            $parsedPath = parse_url($cleanTarget, PHP_URL_PATH) ?: $cleanTarget;
+            $parsedPath = rtrim((string) $parsedPath, '/');
+            $encodedPath = str_replace('%2F', '/', rawurlencode($parsedPath));
+
+            $stmt = $this->db->query("SELECT uid, friendly_name, slug, target_url FROM tags WHERE target_url IS NOT NULL AND target_url != '' AND target_url != 'https://'");
+            if (!$stmt) {
+                return [];
+            }
+            $rows = $stmt->fetchAll();
+            
+            $matches = [];
+            foreach ($rows as $row) {
+                if ($excludeUid !== '' && strcasecmp((string)$row['uid'], $excludeUid) === 0) {
+                    continue;
+                }
+                $rowUrl = rtrim((string) $row['target_url'], '/');
+                $rowPath = parse_url($rowUrl, PHP_URL_PATH) ?: $rowUrl;
+                $rowPath = rtrim((string) $rowPath, '/');
+                $rowEncoded = str_replace('%2F', '/', rawurlencode($rowPath));
+                
+                if (strcasecmp($rowUrl, $cleanTarget) === 0 || 
+                    ($parsedPath !== '' && $parsedPath !== '/' && (
+                        strcasecmp($rowPath, $parsedPath) === 0 || 
+                        strcasecmp($rowEncoded, $encodedPath) === 0 ||
+                        strcasecmp($rowPath, $encodedPath) === 0 ||
+                        strcasecmp($rowEncoded, $parsedPath) === 0
+                    ))) {
+                    $matches[] = [
+                        'uid'           => (string) $row['uid'],
+                        'friendly_name' => (string) ($row['friendly_name'] ?? $row['slug'] ?? $row['uid']),
+                        'target_url'    => (string) $row['target_url']
+                    ];
+                }
+            }
+            return $matches;
+        } catch (\PDOException $e) {
+            return [];
+        }
+    }
 }

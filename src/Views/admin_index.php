@@ -52,21 +52,18 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
         <!-- Header -->
         <div class="border-b border-slate-800 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Phase 2 Command Center</span>
+                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Admin Command Center</span>
                 <h1 class="text-2xl font-bold text-white">NFC Chip Inventory Catalog</h1>
             </div>
             <div class="flex flex-wrap items-center gap-3">
+                <a href="/" class="text-xs text-indigo-300 hover:text-white px-4 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 transition font-bold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-globe"></i> <span>Browser</span>
+                </a>
                 <a href="/admin/content/edit" class="text-xs text-emerald-300 hover:text-white px-4 py-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 transition font-bold flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-pen-to-square"></i> <span>MD Editor</span>
                 </a>
-                <a href="/browse" class="text-xs text-indigo-300 hover:text-white px-4 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 transition font-bold flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-globe"></i> <span>iFrame Browser</span>
-                </a>
                 <a href="<?= htmlspecialchars($prefix . '/admin/history', ENT_QUOTES) ?>" class="text-xs text-amber-300 hover:text-white px-4 py-2.5 rounded-xl bg-amber-950/50 border border-amber-500/30 transition font-bold flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-clock-rotate-left"></i> <span>Activity Logs</span>
-                </a>
-                <a href="<?= htmlspecialchars($prefix === '' ? '/' : $prefix, ENT_QUOTES) ?>" class="text-xs text-slate-300 hover:text-white px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 transition font-semibold">
-                    &larr; Home
                 </a>
                 <button id="adminScanBtn" onclick="triggerAdminNfcScan()" class="text-xs text-white px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 font-bold transition shadow-lg flex items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-wifi"></i> <span>Tap to Assign or Edit Tag</span>

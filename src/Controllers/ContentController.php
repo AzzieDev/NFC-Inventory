@@ -9,6 +9,7 @@ namespace App\Controllers;
 
 use App\Config\Config;
 use App\Http\Response;
+use App\Models\Tag;
 
 class ContentController
 {
@@ -94,7 +95,7 @@ class ContentController
     }
 
     /**
-     * Display date-reversed list of markdown items without showing dates (GET /content)
+     * Display date-reversed list of markdown items without showing dates (GET / or /content)
      */
     public function index(array $params = [], string $basePath = ''): Response
     {
@@ -102,11 +103,35 @@ class ContentController
             session_start();
         }
         $isAdmin = !empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride();
-        $initialUrl = '/content';
+        $initialUrl = '/';
 
         $fileList = $this->getMarkdownFiles();
+
+        // Search Filter
+        $searchQuery = trim((string) ($_GET['q'] ?? ''));
+        if ($searchQuery !== '') {
+            $filtered = [];
+            foreach ($fileList as $item) {
+                $content = @file_get_contents($item['path']) ?: '';
+                if (stripos($item['title'], $searchQuery) !== false || 
+                    stripos($item['slug'], $searchQuery) !== false || 
+                    stripos($content, $searchQuery) !== false) {
+                    $filtered[] = $item;
+                }
+            }
+            $fileList = $filtered;
+        }
+
+        // Pagination (10 items per page as requested for testing)
+        $perPage = 10;
+        $totalItems = count($fileList);
+        $totalPages = (int) max(1, ceil($totalItems / $perPage));
+        $currentPage = max(1, min($totalPages, (int) ($_GET['page'] ?? 1)));
+        $offset = ($currentPage - 1) * $perPage;
+
+        $pagedFiles = array_slice($fileList, $offset, $perPage);
         $contentIndex = [];
-        foreach ($fileList as $item) {
+        foreach ($pagedFiles as $item) {
             $contentIndex[] = [
                 'slug' => $item['slug'],
                 'title' => $item['title']
@@ -132,7 +157,7 @@ class ContentController
         $slug = trim((string) ($params['slug'] ?? ''), '/');
         $filePath = $this->resolvePath($slug);
         if ($filePath === null || !is_file($filePath)) {
-            return Response::redirect('/content', 302);
+            return Response::redirect('/', 302);
         }
 
         // Canonical slug after decoding
@@ -182,7 +207,62 @@ class ContentController
             }
         }
 
-        $fileList = $this->getMarkdownFiles();
+        $allFiles = $this->getMarkdownFiles();
+        $searchQuery = trim((string) ($_GET['q'] ?? ''));
+
+        if ($searchQuery !== '') {
+            $filtered = [];
+            foreach ($allFiles as $item) {
+                $content = @file_get_contents($item['path']) ?: '';
+                if (stripos($item['title'], $searchQuery) !== false || 
+                    stripos($item['slug'], $searchQuery) !== false || 
+                    stripos($content, $searchQuery) !== false) {
+                    $filtered[] = $item;
+                }
+            }
+            $fileList = $filtered;
+        } else {
+            $fileList = $allFiles;
+        }
+
+        // Ensure currently open file is always selected and moved to top of results even if it didn't match search
+        if ($slug !== '') {
+            $activeIndex = null;
+            foreach ($fileList as $idx => $item) {
+                if (strcasecmp((string)$item['slug'], (string)$slug) === 0) {
+                    $activeIndex = $idx;
+                    break;
+                }
+            }
+            if ($activeIndex !== null) {
+                $activeItem = $fileList[$activeIndex];
+                unset($fileList[$activeIndex]);
+            } else {
+                // If open file didn't match search query, look in $allFiles or construct descriptor
+                $activeItem = [
+                    'slug' => $slug,
+                    'title' => ucwords(str_replace(['-', '_'], ' ', basename($slug))),
+                    'path' => $this->markdownDir . '/' . $slug . '.md'
+                ];
+                foreach ($allFiles as $orig) {
+                    if (strcasecmp((string)$orig['slug'], (string)$slug) === 0) {
+                        $activeItem = $orig;
+                        break;
+                    }
+                }
+            }
+            array_unshift($fileList, $activeItem);
+            $fileList = array_values($fileList);
+        }
+
+        // Pagination for editor sidebar (10 items per page)
+        $perPage = 10;
+        $totalItems = count($fileList);
+        $totalPages = (int) max(1, ceil($totalItems / $perPage));
+        $currentPage = max(1, min($totalPages, (int) ($_GET['page'] ?? 1)));
+        $offset = ($currentPage - 1) * $perPage;
+
+        $fileList = array_slice($fileList, $offset, $perPage);
 
         $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_content_edit.php';
         ob_start();
@@ -229,6 +309,12 @@ class ContentController
                 @unlink($oldPath);
                 // Attempt to clean empty directory if old file was in a subfolder
                 @rmdir(dirname($oldPath));
+            }
+            try {
+                $tagModel = new Tag();
+                $tagModel->updateTargetUrlReferences($originalSlug, $slug);
+            } catch (\Exception $e) {
+                // Ignore DB error if connection unavailable during test runs
             }
         }
 

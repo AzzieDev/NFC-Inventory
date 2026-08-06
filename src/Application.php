@@ -46,12 +46,7 @@ class Application
         $this->router->map('GET', '/docs', [DocsController::class, 'getUi'], 'api.ui');
 
         // --- Catalog / Index Home ---
-        $this->router->map('GET', '/', function () {
-            $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/..') . '/src/Views/home.php';
-            ob_start();
-            include $viewPath;
-            return Response::html((string) ob_get_clean(), 200);
-        }, 'home');
+        $this->router->map('GET', '/', [\App\Controllers\ContentController::class, 'index'], 'home');
 
         // --- Phase 4: Lightweight OAuth2 OpenID Connect (OIDC) Authentication ---
         $this->router->map('GET', '/login', [\App\Controllers\AuthController::class, 'login'], 'auth.login');
@@ -71,6 +66,8 @@ class Application
         $this->router->map('GET', '/admin/browser', [\App\Controllers\AdminController::class, 'browser'], 'admin.browser');
         $this->router->map('POST', '/admin/api/fast-bind', [\App\Controllers\AdminController::class, 'fastBind'], 'admin.fast_bind');
         $this->router->map('POST', '/api/fast-bind', [\App\Controllers\AdminController::class, 'fastBind'], 'public.fast_bind');
+        $this->router->map('POST', '/admin/api/check-duplicate-target', [\App\Controllers\AdminController::class, 'checkDuplicateTarget'], 'admin.check_duplicate_target');
+        $this->router->map('POST', '/api/check-duplicate-target', [\App\Controllers\AdminController::class, 'checkDuplicateTarget'], 'public.check_duplicate_target');
         $this->router->map('GET', '/admin/history', [\App\Controllers\AdminController::class, 'history'], 'admin.history');
         $this->router->map('GET|POST', '/admin/inventory/revert', [\App\Controllers\AdminController::class, 'revert'], 'admin.revert');
 

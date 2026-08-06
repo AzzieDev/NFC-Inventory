@@ -13,6 +13,10 @@ if (!defined('APP_ROOT')) {
 $slug = $slug ?? '';
 $markdown = $markdown ?? '';
 $fileList = $fileList ?? [];
+$searchQuery = $searchQuery ?? '';
+$currentPage = $currentPage ?? 1;
+$totalPages = $totalPages ?? 1;
+$totalItems = $totalItems ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en" class="dark h-full">
@@ -46,13 +50,13 @@ $fileList = $fileList ?? [];
                 <i class="fa-solid fa-pen-to-square"></i>
             </div>
             <div>
-                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Phase 6 Service Editor</span>
-                <h1 class="text-xl sm:text-2xl font-bold text-white">Markdown Data Management & Editor</h1>
+                <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Data Service Editor</span>
+                <h1 class="text-xl sm:text-2xl font-bold text-white">Markdown Data Management &amp; Editor</h1>
             </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-            <a href="/content" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs sm:text-sm transition flex items-center gap-2 shadow-sm">
-                <i class="fa-solid fa-globe"></i> <span>View /content Service</span>
+            <a href="/" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs sm:text-sm transition flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-globe"></i> <span>View Browser Service</span>
             </a>
             <a href="/admin" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-semibold rounded-lg text-xs sm:text-sm border border-gray-700 transition flex items-center gap-2 shadow-sm">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
@@ -63,12 +67,12 @@ $fileList = $fileList ?? [];
     <!-- Desktop Workspace Grid: Left File Management Sidebar vs. Right Editor Panel -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-grow items-start">
         <!-- Sidebar: File Management & Drag/Drop Upload Zone -->
-        <div id="fileManagerSidebar" class="lg:col-span-1 bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-xl transition-all duration-200">
+        <div id="fileManagerSidebar" class="lg:col-span-1 bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-xl transition-all duration-200 flex flex-col">
             <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-gray-800">
                 <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2 truncate">
-                    <i class="fa-solid fa-folder-tree text-indigo-400"></i> <span class="truncate">Storage File Management</span>
+                    <i class="fa-solid fa-folder-tree text-indigo-400"></i> <span class="truncate">Storage Management</span>
                 </h2>
-                <span class="text-xs text-gray-500 font-mono shrink-0"><?= count($fileList) ?> files</span>
+                <span class="text-xs text-gray-400 font-mono shrink-0"><?= $totalItems ?> files</span>
             </div>
 
             <div class="flex items-center gap-2 mb-3">
@@ -80,36 +84,88 @@ $fileList = $fileList ?? [];
                     <input type="file" id="fileUploadInput" accept=".md,.txt,text/*" multiple class="hidden" onchange="handleFileInputChange(event)" />
                 </label>
             </div>
+
+            <!-- Sidebar Search Filter & Clear Button -->
+            <form action="/admin/content/edit" method="get" class="mb-3 flex items-center gap-1.5">
+                <?php if ($slug !== ''): ?>
+                    <input type="hidden" name="item" value="<?= htmlspecialchars($slug, ENT_QUOTES, 'UTF-8') ?>" />
+                <?php endif; ?>
+                <div class="relative flex-grow min-w-0">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                    <input type="text" 
+                           name="q" 
+                           value="<?= htmlspecialchars($searchQuery ?? '', ENT_QUOTES, 'UTF-8') ?>" 
+                           placeholder="Search storage..." 
+                           class="w-full pl-8 pr-2.5 py-1.5 bg-gray-950 border border-gray-700 rounded-lg text-xs text-gray-200 focus:outline-none focus:border-indigo-500 shadow-inner truncate font-mono" />
+                </div>
+                <button type="submit" class="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold rounded-lg text-xs border border-gray-700 transition shrink-0" title="Apply Filter">
+                    <i class="fa-solid fa-filter"></i>
+                </button>
+                <?php if (!empty($searchQuery)): ?>
+                    <a href="/admin/content/edit<?= $slug !== '' ? '?item=' . urlencode($slug) : '' ?>" title="Clear Filter" class="px-2 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-xs border border-gray-700 transition shrink-0">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                <?php endif; ?>
+            </form>
             
-            <p class="text-[11px] text-gray-400 text-center pb-3 border-b border-gray-800/60 mb-2 font-medium">
-                <i class="fa-solid fa-cloud-arrow-up mr-1 text-indigo-400"></i> Drag & drop files here to upload instantly
+            <p class="text-[11px] text-gray-400 text-center pb-2.5 border-b border-gray-800/60 mb-2 font-medium">
+                <i class="fa-solid fa-cloud-arrow-up mr-1 text-indigo-400"></i> Drag &amp; drop files here to upload instantly
             </p>
 
-            <!-- File List sorted by date-reversed order without dates -->
-            <div class="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
+            <!-- File List sorted by date-reversed order (active file pinned to top) -->
+            <div class="space-y-1 max-h-[55vh] overflow-y-auto pr-1 flex-grow">
                 <?php if (empty($fileList)): ?>
-                    <p class="text-xs text-gray-500 italic py-4 text-center">No markdown items found.</p>
+                    <p class="text-xs text-gray-500 italic py-6 text-center">No matching markdown files found.</p>
                 <?php else: ?>
-                    <?php foreach ($fileList as $item): ?>
+                    <?php foreach ($fileList as $idx => $item): ?>
                         <?php 
                         $isSelected = (strcasecmp((string)$item['slug'], (string)$slug) === 0); 
                         $encodedSlug = str_replace('%2F', '/', rawurlencode($item['slug']));
                         ?>
-                        <div class="flex items-center justify-between px-2.5 py-2 rounded-lg border transition <?= $isSelected ? 'bg-indigo-950/80 border-indigo-500/50 text-white' : 'bg-gray-950/50 border-gray-800/80 text-gray-300 hover:bg-gray-800 hover:text-white' ?>">
-                            <a href="/admin/content/edit?item=<?= $encodedSlug ?>" class="flex items-center gap-2.5 flex-grow min-w-0 mr-2">
-                                <i class="fa-regular fa-file-lines <?= $isSelected ? 'text-indigo-400' : 'text-gray-500' ?> shrink-0 text-xs"></i>
+                        <div class="flex items-center justify-between px-2.5 py-2 rounded-lg border transition <?= $isSelected ? 'bg-indigo-950/90 border-indigo-500 text-white font-bold shadow-md' : 'bg-gray-950/50 border-gray-800/80 text-gray-300 hover:bg-gray-800 hover:text-white' ?>">
+                            <a href="/admin/content/edit?item=<?= $encodedSlug ?><?= !empty($searchQuery) ? '&q=' . urlencode($searchQuery) : '' ?>" class="flex items-center gap-2.5 flex-grow min-w-0 mr-2">
+                                <i class="fa-regular <?= $isSelected ? 'fa-file-lines text-indigo-400 font-bold' : 'fa-file text-gray-500' ?> shrink-0 text-xs"></i>
                                 <div class="min-w-0 flex-1">
-                                    <span class="block text-xs font-semibold truncate text-left"><?= htmlspecialchars($item['title'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    <span class="block text-[10px] text-gray-500 font-mono truncate text-left">/<?= htmlspecialchars($item['slug'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="block text-xs truncate text-left <?= $isSelected ? 'text-indigo-200' : '' ?>"><?= htmlspecialchars($item['title'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="block text-[10px] <?= $isSelected ? 'text-indigo-400/80' : 'text-gray-500' ?> font-mono truncate text-left">/<?= htmlspecialchars($item['slug'], ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
                             </a>
-                            <button onclick="deleteItem('<?= htmlspecialchars(addslashes($item['slug']), ENT_QUOTES, 'UTF-8') ?>')" title="Delete File from Disk" class="text-gray-600 hover:text-red-400 p-1.5 rounded transition shrink-0">
+                            <button onclick="deleteItem('<?= htmlspecialchars(addslashes($item['slug']), ENT_QUOTES, 'UTF-8') ?>')" title="Delete File from Disk" class="text-gray-500 hover:text-red-400 p-1.5 rounded transition shrink-0">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+
+            <!-- 10-Item Sidebar Pagination Controls -->
+            <?php if ($totalPages > 1): ?>
+                <div class="mt-3 pt-3 border-t border-gray-800 flex items-center justify-between text-xs text-gray-400 font-mono">
+                    <div>
+                        <?php if ($currentPage > 1): ?>
+                            <a href="/admin/content/edit?page=<?= ($currentPage - 1) ?><?= $slug !== '' ? '&item=' . urlencode($slug) : '' ?><?= !empty($searchQuery) ? '&q=' . urlencode($searchQuery) : '' ?>" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-white rounded transition inline-flex items-center gap-1">
+                                <i class="fa-solid fa-chevron-left text-[10px]"></i> <span>Prev</span>
+                            </a>
+                        <?php else: ?>
+                            <span class="px-2.5 py-1 bg-gray-950 text-gray-600 rounded cursor-not-allowed inline-flex items-center gap-1">
+                                <i class="fa-solid fa-chevron-left text-[10px]"></i> <span>Prev</span>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <span><?= $currentPage ?> / <?= $totalPages ?></span>
+                    <div>
+                        <?php if ($currentPage < $totalPages): ?>
+                            <a href="/admin/content/edit?page=<?= ($currentPage + 1) ?><?= $slug !== '' ? '&item=' . urlencode($slug) : '' ?><?= !empty($searchQuery) ? '&q=' . urlencode($searchQuery) : '' ?>" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-white rounded transition inline-flex items-center gap-1">
+                                <span>Next</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </a>
+                        <?php else: ?>
+                            <span class="px-2.5 py-1 bg-gray-950 text-gray-600 rounded cursor-not-allowed inline-flex items-center gap-1">
+                                <span>Next</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Right Main Editor Workspace -->

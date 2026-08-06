@@ -150,7 +150,7 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
 
         <!-- Footer Documentation Quick Link -->
         <div class="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-            <span>System State: <strong>Phase 1 Foundational Routing Active</strong></span>
+            <span>System State: <strong>Routing Engine Active</strong></span>
             <div class="flex items-center gap-4">
                 <a href="./admin" class="text-slate-400 hover:text-white font-semibold transition">Admin Panel</a>
                 <a href="./docs" class="text-indigo-400 hover:text-indigo-300 underline font-semibold transition duration-150">

@@ -149,16 +149,14 @@ class AdminController
         $isAdmin = !empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride();
 
         $requestedUrl = trim((string) ($_GET['p'] ?? ''));
-        if ($requestedUrl === '' || $requestedUrl === '/markdown-blog' || $requestedUrl === './markdown-blog' || $requestedUrl === '/blog') {
-            $requestedUrl = '/content';
+        if ($requestedUrl === '' || $requestedUrl === '/' || $requestedUrl === '/markdown-blog' || $requestedUrl === './markdown-blog' || $requestedUrl === '/blog' || $requestedUrl === '/content') {
+            $contentController = new \App\Controllers\ContentController();
+            return $contentController->index($params, $basePath);
         }
 
         // Delegate internal data service routes directly to ContentController for native iframe-less rendering
-        if ($requestedUrl === '/content' || str_starts_with($requestedUrl, '/content/')) {
+        if (str_starts_with($requestedUrl, '/content/')) {
             $contentController = new \App\Controllers\ContentController();
-            if ($requestedUrl === '/content') {
-                return $contentController->index($params, $basePath);
-            }
             $slug = substr($requestedUrl, strlen('/content/'));
             return $contentController->view(['slug' => $slug], $basePath);
         }
@@ -194,12 +192,24 @@ class AdminController
         $existing = $this->tagRepository->findByUidOrSlug($uid);
         if ($existing === null || empty($existing['slug'])) {
             $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
-            $redirectUrl = $prefix . '/admin/inventory/bind?bind_uid=' . rawurlencode($uid) . '&target_url=' . rawurlencode($targetUrl);
+            $redirectUrl = $prefix . '/admin/inventory/bind?bind_uid=' . rawurlencode($uid) . '&target_url=' . rawurlencode($targetUrl) . '&friendly_name=' . rawurlencode($friendlyName);
             return Response::json(json_encode([
                 'status'       => 'requires_form',
                 'message'      => 'Tag has no slug specified yet. Redirecting to setup form...',
                 'redirect_url' => $redirectUrl
             ]), 200);
+        }
+
+        $forceDuplicate = !empty($input['force_duplicate']);
+        if (!$forceDuplicate) {
+            $duplicates = $this->tagRepository->findTagsByTargetUrl($targetUrl, $uid);
+            if (!empty($duplicates)) {
+                return Response::json(json_encode([
+                    'status'        => 'warn_duplicate',
+                    'message'       => 'One or more existing tags already link to this destination URI.',
+                    'existing_tags' => $duplicates
+                ]), 200);
+            }
         }
 
         $slug = $existing['slug'];
@@ -210,6 +220,36 @@ class AdminController
         }
 
         return Response::json(json_encode(['status' => 'error', 'message' => 'Database update failed.']), 500);
+    }
+
+    /**
+     * Check if any inventory chips already target a specific destination URI
+     */
+    public function checkDuplicateTarget(array $params = [], string $basePath = ''): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['admin_logged_in']) && !Config::isEmergencyOverride()) {
+            return Response::json(json_encode(['status' => 'error', 'message' => 'Unauthorized admin session.']), 401);
+        }
+
+        $input = json_decode((string) file_get_contents('php://input'), true) ?? $_POST;
+        $targetUrl = trim((string) ($input['target_url'] ?? ''));
+        $excludeUid = trim((string) ($input['exclude_uid'] ?? ''));
+
+        if ($targetUrl === '' || $targetUrl === 'http://' || $targetUrl === 'https://') {
+            return Response::json(json_encode(['status' => 'success', 'has_duplicates' => false, 'duplicates' => []]), 200);
+        }
+
+        $duplicates = $this->tagRepository->findTagsByTargetUrl($targetUrl, $excludeUid);
+
+        return Response::json(json_encode([
+            'status'         => 'success',
+            'has_duplicates' => !empty($duplicates),
+            'duplicates'     => $duplicates
+        ]), 200);
     }
 
     /**
