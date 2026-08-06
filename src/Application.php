@@ -66,8 +66,26 @@ class Application
         $this->router->map('POST', '/admin/inventory/bind', [\App\Controllers\AdminController::class, 'saveBind'], 'admin.save_bind');
         $this->router->map('GET|POST', '/admin/inventory/delete', [\App\Controllers\AdminController::class, 'deleteTag'], 'admin.delete');
 
+        // --- Phase 5: iFrame Bookmark Browser & Audit History with Rollback ---
+        $this->router->map('GET', '/browse', [\App\Controllers\AdminController::class, 'browser'], 'public.browser');
+        $this->router->map('GET', '/admin/browser', [\App\Controllers\AdminController::class, 'browser'], 'admin.browser');
+        $this->router->map('POST', '/admin/api/fast-bind', [\App\Controllers\AdminController::class, 'fastBind'], 'admin.fast_bind');
+        $this->router->map('POST', '/api/fast-bind', [\App\Controllers\AdminController::class, 'fastBind'], 'public.fast_bind');
+        $this->router->map('GET', '/admin/history', [\App\Controllers\AdminController::class, 'history'], 'admin.history');
+        $this->router->map('GET|POST', '/admin/inventory/revert', [\App\Controllers\AdminController::class, 'revert'], 'admin.revert');
+
         // --- Phase 3: Automation & REST JSON Lookup API ---
         $this->router->map('GET', '/api/v1/lookup/[*:identifier]', [\App\Controllers\ApiController::class, 'lookup'], 'api.lookup');
+
+        // --- Phase 6: Native Parsedown Data Serving Service & Interactive Markdown Editor ---
+        $this->router->map('GET', '/content', [\App\Controllers\ContentController::class, 'index'], 'content.index');
+        $this->router->map('GET', '/content/', [\App\Controllers\ContentController::class, 'index'], 'content.index_slash');
+        $this->router->map('GET', '/content/[*:slug]/raw', [\App\Controllers\ContentController::class, 'raw'], 'content.raw');
+        $this->router->map('GET', '/content/[*:slug]', [\App\Controllers\ContentController::class, 'view'], 'content.view');
+        $this->router->map('GET', '/admin/content/edit', [\App\Controllers\ContentController::class, 'edit'], 'admin.content.edit');
+        $this->router->map('POST', '/admin/api/content/save', [\App\Controllers\ContentController::class, 'save'], 'admin.content.save');
+        $this->router->map('POST', '/admin/api/content/delete', [\App\Controllers\ContentController::class, 'delete'], 'admin.content.delete');
+        $this->router->map('POST', '/api/v1/markdown/preview', [\App\Controllers\ContentController::class, 'preview'], 'api.markdown.preview');
 
         // --- NFC Routing Engine Fallback (Must be mapped last) ---
         $this->router->map('GET', '/[*:tag_uid]', [NfcRouteController::class, 'resolveTag'], 'nfc.resolve');

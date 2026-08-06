@@ -14,7 +14,7 @@ Options -Indexes
 
 # Block web access to application source directories
 RewriteEngine On
-RewriteRule ^(src|vendor|tests|sql|config|\.git|\.agents)/ - [F,L]
+RewriteRule ^(src|vendor|tests|sql|config|markdown|\.git|\.agents)/ - [F,L]
 
 # Front Controller Pattern: Route all dynamic application paths through index.php
 RewriteCond %{REQUEST_FILENAME} !-f

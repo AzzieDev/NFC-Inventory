@@ -14,7 +14,7 @@ $uid = $uid ?? '';
 $existing = $existing ?? null;
 $slugVal = htmlspecialchars((string) ($existing['slug'] ?? ''), ENT_QUOTES);
 $nameVal = htmlspecialchars((string) ($existing['friendly_name'] ?? ''), ENT_QUOTES);
-$urlVal  = htmlspecialchars((string) ($existing['target_url'] ?? 'https://'), ENT_QUOTES);
+$urlVal  = htmlspecialchars((string) ($existing['target_url'] ?? ($_GET['target_url'] ?? 'https://')), ENT_QUOTES);
 
 $formAction = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '') . '/admin/inventory/bind';
 ?>

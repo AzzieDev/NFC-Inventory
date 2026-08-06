@@ -73,6 +73,11 @@ class Tag
             $slug = strtolower(trim($slug));
         }
 
+        $existing = $this->findByUidOrSlug($normalizedUid);
+        $action = ($existing === null) ? 'assigned' : 'updated';
+        $oldUrl = $existing['target_url'] ?? null;
+        $oldName = $existing['friendly_name'] ?? null;
+
         $sql = "INSERT INTO tags (uid, slug, friendly_name, post_id, target_url, status) 
                 VALUES (:uid, :slug, :name, :post_id, :target_url, :status)
                 ON DUPLICATE KEY UPDATE 
@@ -82,13 +87,13 @@ class Tag
                 target_url = VALUES(target_url),
                 status = VALUES(status)";
 
-        if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        if ($this->db->getAttribute(\PDO::ATTR_DRIVER_NAME) === 'sqlite') {
             $sql = "INSERT OR REPLACE INTO tags (uid, slug, friendly_name, post_id, target_url, status) 
                     VALUES (:uid, :slug, :name, :post_id, :target_url, :status)";
         }
 
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $result = $stmt->execute([
             ':uid'        => $normalizedUid,
             ':slug'       => $slug,
             ':name'       => $friendlyName,
@@ -96,6 +101,12 @@ class Tag
             ':target_url' => $targetUrl,
             ':status'     => $status,
         ]);
+
+        if ($result && $action !== 'reverted') {
+            $this->recordActivity($normalizedUid, $action, $oldUrl, $targetUrl, $oldName, $friendlyName);
+        }
+
+        return $result;
     }
 
     /**
@@ -104,8 +115,16 @@ class Tag
     public function unlinkPost(string $rawUid): bool
     {
         $normalizedUid = TagHelper::normalizeUid($rawUid);
+        $existing = $this->findByUidOrSlug($normalizedUid);
+        
         $stmt = $this->db->prepare("UPDATE tags SET post_id = NULL, target_url = NULL, status = 'available' WHERE uid = :uid");
-        return $stmt->execute([':uid' => $normalizedUid]);
+        $result = $stmt->execute([':uid' => $normalizedUid]);
+
+        if ($result && $existing !== null && ($existing['target_url'] !== null || $existing['post_id'] !== null)) {
+            $this->recordActivity($existing['uid'], 'unassigned', $existing['target_url'], null, $existing['friendly_name'], $existing['friendly_name']);
+        }
+
+        return $result;
     }
 
     /**
@@ -125,7 +144,98 @@ class Tag
     public function delete(string $rawUid): bool
     {
         $normalizedUid = TagHelper::normalizeUid($rawUid);
+        $existing = $this->findByUidOrSlug($normalizedUid);
+
         $stmt = $this->db->prepare('DELETE FROM tags WHERE uid = :uid');
-        return $stmt->execute([':uid' => $normalizedUid]);
+        $result = $stmt->execute([':uid' => $normalizedUid]);
+
+        if ($result && $existing !== null) {
+            $this->recordActivity($existing['uid'], 'deleted', $existing['target_url'], null, $existing['friendly_name'], null);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Record an audit log entry for historical activity tracking and one-click state reversibility
+     */
+    public function recordActivity(string $uid, string $action, ?string $oldUrl, ?string $newUrl, ?string $oldName, ?string $newName): void
+    {
+        try {
+            $stmt = $this->db->prepare("INSERT INTO tag_activity_logs (tag_uid, action_type, old_target_url, new_target_url, old_friendly_name, new_friendly_name) VALUES (:uid, :action, :old_url, :new_url, :old_name, :new_name)");
+            $stmt->execute([
+                ':uid'      => $uid,
+                ':action'   => $action,
+                ':old_url'  => $oldUrl,
+                ':new_url'  => $newUrl,
+                ':old_name' => $oldName,
+                ':new_name' => $newName
+            ]);
+        } catch (\PDOException $e) {
+            // Suppress log insert errors during schema transitions
+        }
+    }
+
+    /**
+     * Retrieve recent chronological tag activity logs
+     *
+     * @return array<int, array>
+     */
+    public function getHistory(?string $uid = null, int $limit = 100): array
+    {
+        try {
+            if ($uid !== null) {
+                $stmt = $this->db->prepare('SELECT * FROM tag_activity_logs WHERE tag_uid = :uid ORDER BY created_at DESC, id DESC LIMIT :limit');
+                $stmt->bindValue(':uid', TagHelper::normalizeUid($uid), \PDO::PARAM_STR);
+                $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+                $stmt->execute();
+                return $stmt->fetchAll();
+            }
+            
+            $stmt = $this->db->query("SELECT * FROM tag_activity_logs ORDER BY created_at DESC, id DESC LIMIT {$limit}");
+            return $stmt ? $stmt->fetchAll() : [];
+        } catch (\PDOException $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Revert a tag to its prior state recorded in an audit log entry
+     */
+    public function revertFromLog(int $logId): bool
+    {
+        try {
+            $stmt = $this->db->prepare('SELECT * FROM tag_activity_logs WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $logId]);
+            $log = $stmt->fetch();
+
+            if ($log === false) {
+                return false;
+            }
+
+            $uid = (string) $log['tag_uid'];
+            $targetToRestore = $log['old_target_url'];
+            $nameToRestore   = $log['old_friendly_name'];
+
+            $existing = $this->findByUidOrSlug($uid);
+            $currentUrl  = $existing['target_url'] ?? null;
+            $currentName = $existing['friendly_name'] ?? null;
+
+            // Save without re-triggering standard updated activity log
+            $stmtSave = $this->db->prepare("INSERT INTO tags (uid, friendly_name, target_url, status) VALUES (:uid, :name, :url, 'assigned') ON DUPLICATE KEY UPDATE friendly_name = VALUES(friendly_name), target_url = VALUES(target_url), status = 'assigned'");
+            $res = $stmtSave->execute([
+                ':uid'  => $uid,
+                ':name' => $nameToRestore,
+                ':url'  => $targetToRestore
+            ]);
+
+            if ($res) {
+                $this->recordActivity($uid, 'reverted', $currentUrl, $targetToRestore, $currentName, $nameToRestore);
+            }
+
+            return $res;
+        } catch (\PDOException $e) {
+            return false;
+        }
     }
 }

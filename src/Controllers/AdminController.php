@@ -137,4 +137,114 @@ class AdminController
         $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
         return Response::redirect($prefix . '/admin', 302);
     }
+
+    /**
+     * Display mobile-first interactive iFrame Bookmark Browser (GET /browse)
+     */
+    public function browser(array $params = [], string $basePath = ''): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $isAdmin = !empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride();
+
+        $requestedUrl = trim((string) ($_GET['p'] ?? ''));
+        if ($requestedUrl === '' || $requestedUrl === '/markdown-blog' || $requestedUrl === './markdown-blog' || $requestedUrl === '/blog') {
+            $requestedUrl = '/content';
+        }
+
+        // Delegate internal data service routes directly to ContentController for native iframe-less rendering
+        if ($requestedUrl === '/content' || str_starts_with($requestedUrl, '/content/')) {
+            $contentController = new \App\Controllers\ContentController();
+            if ($requestedUrl === '/content') {
+                return $contentController->index($params, $basePath);
+            }
+            $slug = substr($requestedUrl, strlen('/content/'));
+            return $contentController->view(['slug' => $slug], $basePath);
+        }
+
+        $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_browser.php';
+        ob_start();
+        include $viewPath;
+        return Response::html((string) ob_get_clean(), 200);
+    }
+
+    /**
+     * Process instantaneous zero-confirmation JSON POST tag binding from mobile Web NFC sensor
+     */
+    public function fastBind(array $params = [], string $basePath = ''): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['admin_logged_in']) && !Config::isEmergencyOverride()) {
+            return Response::json(json_encode(['status' => 'error', 'message' => 'Unauthorized admin session.']), 401);
+        }
+
+        $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+        $uid = trim((string) ($input['uid'] ?? ''));
+        $targetUrl = trim((string) ($input['target_url'] ?? ''));
+        $friendlyName = trim((string) ($input['friendly_name'] ?? 'Framed Bookmark'));
+
+        if ($uid === '' || $targetUrl === '') {
+            return Response::json(json_encode(['status' => 'error', 'message' => 'Missing UID or target URL.']), 400);
+        }
+
+        $existing = $this->tagRepository->findByUidOrSlug($uid);
+        if ($existing === null || empty($existing['slug'])) {
+            $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
+            $redirectUrl = $prefix . '/admin/inventory/bind?bind_uid=' . rawurlencode($uid) . '&target_url=' . rawurlencode($targetUrl);
+            return Response::json(json_encode([
+                'status'       => 'requires_form',
+                'message'      => 'Tag has no slug specified yet. Redirecting to setup form...',
+                'redirect_url' => $redirectUrl
+            ]), 200);
+        }
+
+        $slug = $existing['slug'];
+        $success = $this->tagRepository->save($uid, null, $friendlyName, 'active', $slug, $targetUrl);
+
+        if ($success) {
+            return Response::json(json_encode(['status' => 'success', 'uid' => $uid, 'target_url' => $targetUrl]), 200);
+        }
+
+        return Response::json(json_encode(['status' => 'error', 'message' => 'Database update failed.']), 500);
+    }
+
+    /**
+     * Display historical tag activity audit feed and rollback console (GET /admin/history)
+     */
+    public function history(array $params = [], string $basePath = ''): Response
+    {
+        if (($redirect = $this->requireAuth($basePath)) !== null) {
+            return $redirect;
+        }
+
+        $logs = $this->tagRepository->getHistory(null, 100);
+        $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_history.php';
+
+        ob_start();
+        include $viewPath;
+        return Response::html((string) ob_get_clean(), 200);
+    }
+
+    /**
+     * Process one-click historical state rollback (POST /admin/inventory/revert)
+     */
+    public function revert(array $params = [], string $basePath = ''): Response
+    {
+        if (($redirect = $this->requireAuth($basePath)) !== null) {
+            return $redirect;
+        }
+
+        $logId = (int) ($_POST['log_id'] ?? ($_GET['log_id'] ?? 0));
+        $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
+
+        if ($logId > 0 && $this->tagRepository->revertFromLog($logId)) {
+            return Response::redirect($prefix . '/admin/history?reverted=1', 302);
+        }
+
+        return Response::redirect($prefix . '/admin/history?error=1', 302);
+    }
 }

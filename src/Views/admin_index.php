@@ -20,6 +20,7 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -55,11 +56,20 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                 <h1 class="text-2xl font-bold text-white">NFC Chip Inventory Catalog</h1>
             </div>
             <div class="flex flex-wrap items-center gap-3">
+                <a href="/admin/content/edit" class="text-xs text-emerald-300 hover:text-white px-4 py-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 transition font-bold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-pen-to-square"></i> <span>MD Editor</span>
+                </a>
+                <a href="/browse" class="text-xs text-indigo-300 hover:text-white px-4 py-2.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 transition font-bold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-globe"></i> <span>iFrame Browser</span>
+                </a>
+                <a href="<?= htmlspecialchars($prefix . '/admin/history', ENT_QUOTES) ?>" class="text-xs text-amber-300 hover:text-white px-4 py-2.5 rounded-xl bg-amber-950/50 border border-amber-500/30 transition font-bold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span>Activity Logs</span>
+                </a>
                 <a href="<?= htmlspecialchars($prefix === '' ? '/' : $prefix, ENT_QUOTES) ?>" class="text-xs text-slate-300 hover:text-white px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600 transition font-semibold">
-                    &larr; Home Dashboard
+                    &larr; Home
                 </a>
                 <button id="adminScanBtn" onclick="triggerAdminNfcScan()" class="text-xs text-white px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 font-bold transition shadow-lg flex items-center gap-2 cursor-pointer">
-                    <span>📡 Tap to Assign or Edit Tag</span>
+                    <i class="fa-solid fa-wifi"></i> <span>Tap to Assign or Edit Tag</span>
                 </button>
                 <a href="<?= htmlspecialchars($prefix . '/logout', ENT_QUOTES) ?>" class="text-xs text-red-400 hover:text-red-300 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 transition font-semibold">
                     Logout
