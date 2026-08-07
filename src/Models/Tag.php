@@ -71,6 +71,15 @@ class Tag
         $normalizedUid = TagHelper::normalizeUid($rawUid);
         if ($slug !== null) {
             $slug = strtolower(trim($slug));
+            if ($slug === '') {
+                $slug = null;
+            }
+        }
+        if ($friendlyName !== null) {
+            $friendlyName = trim($friendlyName);
+            if ($friendlyName === '') {
+                $friendlyName = null;
+            }
         }
 
         $existing = $this->findByUidOrSlug($normalizedUid);

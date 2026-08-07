@@ -178,7 +178,7 @@ $totalItems = $totalItems ?? 0;
                         <input id="slugInput" 
                                type="text" 
                                value="<?= htmlspecialchars($slug, ENT_QUOTES, 'UTF-8') ?>" 
-                               placeholder="e.g. Creami_1 Fairlife Chocolate Gelato" 
+                               placeholder="e.g. Storage Bin 01 - Top Shelf" 
                                class="w-full bg-gray-950 border border-gray-700 rounded-lg pl-20 sm:pl-24 pr-12 py-2 text-sm sm:text-base text-white font-mono focus:outline-none focus:border-indigo-500 shadow-inner" />
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-mono font-bold">.md</span>
                     </div>
@@ -230,7 +230,7 @@ $totalItems = $totalItems ?? 0;
         function createNewItem() {
             slugInput.value = '';
             originalSlug = '';
-            mdInput.value = '# New Data Service Item\n\nEnter content here...';
+            mdInput.value = '';
             slugInput.focus();
             if (isPreviewOpen) togglePreview();
             updateRawButtons('');

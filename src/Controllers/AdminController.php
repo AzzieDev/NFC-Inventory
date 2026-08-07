@@ -74,6 +74,9 @@ class AdminController
         }
 
         $existing = $uid !== '' ? $this->tagRepository->findByUidOrSlug($uid) : null;
+        if ($existing !== null) {
+            $uid = (string) $existing['uid'];
+        }
 
         $viewPath = (defined('APP_ROOT') ? APP_ROOT : __DIR__ . '/../..') . '/src/Views/admin_bind.php';
         
@@ -94,14 +97,20 @@ class AdminController
         $uid = trim((string) ($_POST['uid'] ?? ''));
         $slug = trim((string) ($_POST['slug'] ?? ''));
         $targetUrl = trim((string) ($_POST['target_url'] ?? ''));
-        $friendlyName = trim((string) ($_POST['friendly_name'] ?? $slug));
+        $friendlyName = trim((string) ($_POST['friendly_name'] ?? ''));
 
         if ($uid === '') {
             return Response::html('<h1>Error: Missing hardware Tag UID</h1><a href="javascript:history.back()">Back</a>', 400);
         }
 
         if ($slug === '') {
-            $slug = 'item-' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $uid));
+            $slug = null;
+        }
+        if ($friendlyName === '') {
+            $friendlyName = null;
+        }
+        if ($targetUrl === '') {
+            $targetUrl = null;
         }
 
         // Save tag in database repository using positional parameter sign-off
@@ -200,6 +209,14 @@ class AdminController
             ]), 200);
         }
 
+        if ($existing['target_url'] === $targetUrl) {
+            return Response::json(json_encode([
+                'status'  => 'already_bound',
+                'message' => 'This tag is already assigned to this exact destination.',
+                'uid'     => $uid
+            ]), 200);
+        }
+
         $forceDuplicate = !empty($input['force_duplicate']);
         if (!$forceDuplicate) {
             $duplicates = $this->tagRepository->findTagsByTargetUrl($targetUrl, $uid);
@@ -220,6 +237,34 @@ class AdminController
         }
 
         return Response::json(json_encode(['status' => 'error', 'message' => 'Database update failed.']), 500);
+    }
+
+    /**
+     * Unlink a tag via POST API without redirecting
+     */
+    public function fastUnbind(array $params = [], string $basePath = ''): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (empty($_SESSION['admin_logged_in']) && !Config::isEmergencyOverride()) {
+            return Response::json(json_encode(['status' => 'error', 'message' => 'Unauthorized admin session.']), 401);
+        }
+
+        $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+        $uid = trim((string) ($input['uid'] ?? ''));
+
+        if ($uid === '') {
+            return Response::json(json_encode(['status' => 'error', 'message' => 'Missing UID.']), 400);
+        }
+
+        $success = $this->tagRepository->unlinkPost($uid);
+        if ($success) {
+            return Response::json(json_encode(['status' => 'success', 'uid' => $uid]), 200);
+        }
+
+        return Response::json(json_encode(['status' => 'error', 'message' => 'Failed to unlink tag in database.']), 500);
     }
 
     /**

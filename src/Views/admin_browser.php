@@ -238,11 +238,11 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
                             <span class="font-mono text-gray-400">NFC Inventory &amp; State Tracker</span>
                         </div>
                         <div class="flex flex-wrap items-center gap-3">
-                            <a href="/docs" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-semibold border border-gray-700 transition flex items-center gap-2 shadow-sm">
-                                <i class="fa-solid fa-book text-indigo-400"></i> <span>API Docs</span>
+                            <a href="/docs" class="h-9 px-4 inline-flex items-center justify-center rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-semibold border border-gray-700 transition gap-2 shadow-sm">
+                                <i class="fa-solid fa-book text-sm text-indigo-400"></i> <span>API Docs</span>
                             </a>
-                            <a href="https://github.com/AzzieDev/NFC-Inventory" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-semibold border border-gray-700 transition flex items-center gap-2 shadow-sm">
-                                <i class="fa-brands fa-github text-base text-gray-300"></i> <span>GitHub Repository</span>
+                            <a href="https://github.com/AzzieDev/NFC-Inventory" target="_blank" rel="noopener noreferrer" class="h-9 px-4 inline-flex items-center justify-center rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-semibold border border-gray-700 transition gap-2 shadow-sm">
+                                <i class="fa-brands fa-github text-sm text-gray-300"></i> <span>GitHub Repository</span>
                             </a>
                         </div>
                     </footer>
@@ -469,6 +469,30 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
 
                     try {
                         let data = await sendFastBind(false);
+                        if (data.status === 'already_bound') {
+                            if (confirm(data.message + "\n\nClick OK to unlink this tag from this page, or Cancel to leave it bound.")) {
+                                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Unlinking...</span>';
+                                const unbindResp = await fetch('/admin/api/fast-unbind', {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ uid: serial })
+                                });
+                                const unbindData = await unbindResp.json();
+                                if (unbindData.status === 'success') {
+                                    showToast('Tag successfully unlinked from this page.');
+                                    btn.innerHTML = '<i class="fa-solid fa-link-slash"></i> <span>Unlinked</span>';
+                                } else {
+                                    showToast('Error unlinking tag: ' + (unbindData.message || 'Unknown error.'));
+                                    btn.innerHTML = originalHtml;
+                                }
+                            } else {
+                                showToast('Tag assignment left unchanged.');
+                                btn.innerHTML = originalHtml;
+                            }
+                            btn.classList.remove('!bg-amber-600', '!border-amber-500', '!bg-emerald-600', '!border-emerald-500');
+                            return;
+                        }
+                        
                         if (data.status === 'warn_duplicate') {
                             const confirmed = await showDuplicateDialog(data.existing_tags || []);
                             if (!confirmed) {

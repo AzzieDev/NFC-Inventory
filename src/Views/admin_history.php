@@ -38,8 +38,8 @@ $logs = $logs ?? [];
                 <p class="text-sm text-gray-400 mt-1">Audit log of tag assignments, updates, deletions, and instantaneous historical reversions.</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="/browse" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm shadow transition flex items-center gap-2">
-                    <i class="fa-solid fa-globe"></i> <span>iFrame Browser</span>
+                <a href="/" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm shadow transition flex items-center gap-2">
+                    <i class="fa-solid fa-globe"></i> <span>Browser</span>
                 </a>
                 <a href="/admin" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold rounded-lg text-sm border border-gray-700 transition flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i> <span>Inventory Table</span>
@@ -49,12 +49,12 @@ $logs = $logs ?? [];
 
         <?php if (!empty($_GET['reverted'])): ?>
             <div class="mb-6 p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-lg flex items-center gap-3 text-emerald-400 font-medium">
-                <span class="text-xl">✅</span>
+                <i class="fa-solid fa-circle-check text-xl"></i>
                 <span>Tag state successfully restored from historical archive!</span>
             </div>
         <?php elseif (!empty($_GET['error'])): ?>
             <div class="mb-6 p-4 bg-rose-950/40 border border-rose-500/30 rounded-lg flex items-center gap-3 text-rose-400 font-medium">
-                <span class="text-xl">⚠️</span>
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
                 <span>Failed to revert tag state. Log record may be invalid or missing.</span>
             </div>
         <?php endif; ?>
@@ -77,7 +77,7 @@ $logs = $logs ?? [];
                         <?php if (empty($logs)): ?>
                             <tr>
                                 <td colspan="6" class="py-12 text-center text-gray-500 italic">
-                                    No activity logs recorded yet. Assign or modify NFC tags in the iFrame Browser or Inventory dashboard to populate this feed.
+                                    No activity logs recorded yet. Assign or modify NFC tags in the Browser or Inventory dashboard to populate this feed.
                                 </td>
                             </tr>
                         <?php else: ?>
@@ -124,8 +124,8 @@ $logs = $logs ?? [];
                                         <?php if (!empty($log['old_target_url']) && $action !== 'reverted'): ?>
                                             <form action="inventory/revert" method="POST" class="inline-block" onsubmit="return confirm('Restore tag <?= htmlspecialchars((string) $log['tag_uid'], ENT_QUOTES) ?> back to this previous state?');">
                                                 <input type="hidden" name="log_id" value="<?= (int) $log['id'] ?>">
-                                                <button type="submit" class="px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 rounded text-xs font-semibold transition">
-                                                    🔄 Revert
+                                                <button type="submit" class="px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-rotate-left"></i> <span>Revert</span>
                                                 </button>
                                             </form>
                                         <?php else: ?>

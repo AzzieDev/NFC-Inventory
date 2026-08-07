@@ -78,8 +78,8 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
         <div id="adminScanFeedback" class="hidden p-4 rounded-2xl bg-indigo-950/70 border border-indigo-500/40 flex items-center justify-between gap-3 animate-pulse">
             <div class="flex items-center gap-3">
                 <span class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
-                <span id="adminScanText" class="text-xs md:text-sm font-semibold text-slate-200">
-                    ⚡ Admin Scanner Armed! Tap any physical NFC tag against your phone right now to open its assignment and configuration form...
+                <span id="adminScanText" class="text-xs md:text-sm font-semibold text-slate-200 inline-flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-amber-400"></i> <span>Admin Scanner Armed! Tap any physical NFC tag against your phone right now to open its assignment and configuration form...</span>
                 </span>
             </div>
             <button onclick="document.getElementById('adminScanFeedback').classList.add('hidden')" class="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg">Cancel</button>
@@ -130,9 +130,9 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                                             <button 
                                                 onclick="copySlugLink('<?= htmlspecialchars($slug, ENT_QUOTES) ?>', this)"
                                                 title="Copy absolute slug URL to clipboard"
-                                                class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-lg transition whitespace-nowrap flex items-center gap-1"
+                                                class="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded-lg transition whitespace-nowrap inline-flex items-center gap-1.5"
                                             >
-                                                📋 Copy Link
+                                                <i class="fa-regular fa-copy"></i> <span>Copy Link</span>
                                             </button>
                                         </div>
                                     <?php else: ?>
@@ -154,17 +154,17 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                                 <td class="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
                                     <a 
                                         href="<?= htmlspecialchars($prefix . '/admin/inventory/bind?uid=' . rawurlencode($uid), ENT_QUOTES) ?>"
-                                        class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 transition inline-block"
+                                        class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 transition inline-flex items-center gap-1"
                                     >
-                                        Edit / Re-bind &rarr;
+                                        <span>Edit / Re-bind</span> <i class="fa-solid fa-arrow-right"></i>
                                     </a>
                                     <a 
                                         href="<?= htmlspecialchars($prefix . '/admin/inventory/delete?uid=' . rawurlencode($uid), ENT_QUOTES) ?>"
                                         onclick="return confirm('Are you sure you want to permanently delete this tag record (<?= htmlspecialchars(addslashes($uid), ENT_QUOTES) ?>)?');"
                                         title="Permanently remove tag"
-                                        class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/20 transition inline-block"
+                                        class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/20 transition inline-flex items-center gap-1.5"
                                     >
-                                        🗑️ Delete
+                                        <i class="fa-solid fa-trash-can"></i> <span>Delete</span>
                                     </a>
                                 </td>
                             </tr>
@@ -184,9 +184,12 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
             const feedbackText = document.getElementById('adminScanText');
             const btn = document.getElementById('adminScanBtn');
 
-            // On desktop or non-Android browsers without Web NFC, transition directly to Home Scanner in Admin Bind Mode
+            // On desktop or non-Android browsers without Web NFC hardware sensors, allow instant manual UID entry in-place
             if (!('NDEFReader' in window)) {
-                window.location.href = (prefix || '') + '/?mode=bind';
+                const uid = prompt("Web NFC hardware sensor scanning requires Chrome or Edge on an Android device.\n\nTo assign or edit a tag directly from desktop right now, enter the tag UID or Slug (e.g. 04:6A:F1:A2):");
+                if (uid && uid.trim() !== "") {
+                    window.location.href = (prefix || '') + '/admin/inventory/bind?uid=' + encodeURIComponent(uid.trim());
+                }
                 return;
             }
 
@@ -196,10 +199,10 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                 
                 feedback.classList.remove('hidden');
                 btn.classList.add('animate-pulse-ring');
-                btn.innerHTML = '<span>⚡ Listening... Touch Tag Now</span>';
+                btn.innerHTML = '<span><i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i> Listening... Touch Tag Now</span>';
 
                 ndef.addEventListener("reading", ({ serialNumber }) => {
-                    feedbackText.innerHTML = '✅ Tag Scanned (<span class="font-mono text-cyan-400">' + serialNumber + '</span>). Opening configuration form...';
+                    feedbackText.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i> Tag Scanned (<span class="font-mono text-cyan-400">' + serialNumber + '</span>). Opening configuration form...';
                     btn.classList.remove('animate-pulse-ring');
                     
                     // Directly transition to admin bind form regardless of whether tag exists or is unassigned!
@@ -209,12 +212,14 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                 });
 
                 ndef.addEventListener("error", () => {
-                    feedbackText.innerHTML = '❌ Failed to read NFC chip. Please hold your phone steady and try tapping again.';
+                    feedbackText.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-400 mr-1.5"></i> Failed to read NFC chip. Please hold your phone steady and try tapping again.';
                 });
 
             } catch (error) {
-                // If permission denied or unavailable, cleanly fallback to home bind mode
-                window.location.href = (prefix || '') + '/?mode=bind';
+                // If permission denied or sensor activation fails, present an in-place alert instead of redirecting away
+                feedbackText.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-400 mr-1.5"></i> NFC Sensor Activation Error: ' + error.message + '. Ensure NFC is enabled on your device.';
+                feedback.classList.remove('hidden');
+                btn.classList.remove('animate-pulse-ring');
             }
         }
 
@@ -225,7 +230,7 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
 
             navigator.clipboard.writeText(absoluteUrl).then(() => {
                 const originalText = btnElement.innerHTML;
-                btnElement.innerHTML = '✅ Copied!';
+                btnElement.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i> <span>Copied!</span>';
                 btnElement.classList.remove('text-slate-400');
                 btnElement.classList.add('text-emerald-400');
                 

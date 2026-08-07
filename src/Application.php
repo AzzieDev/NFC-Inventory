@@ -66,6 +66,8 @@ class Application
         $this->router->map('GET', '/admin/browser', [\App\Controllers\AdminController::class, 'browser'], 'admin.browser');
         $this->router->map('POST', '/admin/api/fast-bind', [\App\Controllers\AdminController::class, 'fastBind'], 'admin.fast_bind');
         $this->router->map('POST', '/api/fast-bind', [\App\Controllers\AdminController::class, 'fastBind'], 'public.fast_bind');
+        $this->router->map('POST', '/admin/api/fast-unbind', [\App\Controllers\AdminController::class, 'fastUnbind'], 'admin.fast_unbind');
+        $this->router->map('POST', '/api/fast-unbind', [\App\Controllers\AdminController::class, 'fastUnbind'], 'public.fast_unbind');
         $this->router->map('POST', '/admin/api/check-duplicate-target', [\App\Controllers\AdminController::class, 'checkDuplicateTarget'], 'admin.check_duplicate_target');
         $this->router->map('POST', '/api/check-duplicate-target', [\App\Controllers\AdminController::class, 'checkDuplicateTarget'], 'public.check_duplicate_target');
         $this->router->map('GET', '/admin/history', [\App\Controllers\AdminController::class, 'history'], 'admin.history');

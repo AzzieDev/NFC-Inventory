@@ -20,6 +20,7 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -82,7 +83,7 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
             <!-- Administrator Bind & Edit Override Banner -->
             <div class="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 to-indigo-500/15 border border-amber-500/30 text-left flex items-center justify-between gap-3 shadow-lg">
                 <div class="flex items-start gap-3">
-                    <span class="text-xl">🔧</span>
+                    <i class="fa-solid fa-wrench text-xl text-amber-400 mt-0.5"></i>
                     <div>
                         <span class="text-xs font-bold text-amber-400 uppercase tracking-wider block">Admin Tag Configuration Mode Active</span>
                         <p class="text-xs text-slate-300">Tapping a tag or looking up a UID will immediately open its admin configuration form rather than redirecting to its destination URL.</p>
@@ -124,8 +125,8 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
                 </button>
             </div>
 
-            <p id="scanFeedback" class="text-xs text-slate-400 hidden animate-pulse">
-                ⚡ NFC Sensor Armed! Hold your phone against the physical NFC tag...
+            <p id="scanFeedback" class="text-xs text-slate-400 hidden animate-pulse flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-bolt text-amber-400"></i> <span>NFC Sensor Armed! Hold your phone against the physical NFC tag...</span>
             </p>
         </div>
 
@@ -185,17 +186,17 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
                 statusText.innerText = 'Listening for Tap...';
                 feedback.classList.remove('hidden');
                 btn.classList.add('animate-pulse-ring');
-                btn.innerHTML = '⚡ Ready: Touch Tag to Phone...';
+                btn.innerHTML = '<i class="fa-solid fa-bolt text-amber-400 mr-1.5"></i> <span>Ready: Touch Tag to Phone...</span>';
 
                 ndef.addEventListener("reading", ({ serialNumber }) => {
                     if (isBindMode) {
-                        feedback.innerHTML = '✅ Tag Scanned: <span class="text-cyan-400 font-mono">' + serialNumber + '</span>. Opening assignment form...';
+                        feedback.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i> Tag Scanned: <span class="text-cyan-400 font-mono">' + serialNumber + '</span>. Opening assignment form...';
                         btn.classList.remove('animate-pulse-ring');
                         setTimeout(() => {
                             window.location.href = './admin/inventory/bind?uid=' + encodeURIComponent(serialNumber);
                         }, 400);
                     } else {
-                        feedback.innerHTML = '✅ Tag Scanned: <span class="text-cyan-400 font-mono">' + serialNumber + '</span>. Resolving link in database...';
+                        feedback.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 mr-1.5"></i> Tag Scanned: <span class="text-cyan-400 font-mono">' + serialNumber + '</span>. Resolving link in database...';
                         btn.classList.remove('animate-pulse-ring');
                         setTimeout(() => {
                             window.location.href = './' + encodeURIComponent(serialNumber);
@@ -207,7 +208,7 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
                     statusDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
                     statusText.className = 'text-red-400 font-mono';
                     statusText.innerText = 'Read Error';
-                    feedback.innerText = '❌ Failed to read NFC chip. Please tap again.';
+                    feedback.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-400 mr-1.5"></i> Failed to read NFC chip. Please tap again.';
                 });
 
             } catch (error) {

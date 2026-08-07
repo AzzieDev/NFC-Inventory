@@ -37,7 +37,7 @@ class NfcRouteController
         responses: [
             new OA\Response(
                 response: 302, 
-                description: 'HTTP Redirect cascading from hardware UID to friendly slug, or from friendly slug to target destination URL / recipe record'
+                description: 'HTTP Redirect cascading from hardware UID to friendly slug, or from friendly slug to target destination URL / inventory record'
             ),
             new OA\Response(
                 response: 200, 
@@ -52,11 +52,11 @@ class NfcRouteController
         $isHardwareSerial = TagHelper::isHardwareSerial($normalizedUid);
         $displayUid = TagHelper::formatForDisplay($normalizedUid);
 
+        $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
         // Query database inventory by either hardware serial or custom friendly slug
         $tagRecord = $this->tagRepository->findByUidOrSlug($rawUid);
 
         if ($tagRecord !== null) {
-            $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
 
             // Hop #1: If scanned by hardware UID and a customizable friendly slug exists, 302 redirect to the slug URL first!
             if (strcasecmp($normalizedUid, (string) $tagRecord['uid']) === 0 && !empty($tagRecord['slug'])) {

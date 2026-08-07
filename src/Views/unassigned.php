@@ -126,7 +126,7 @@ $displayUid = htmlspecialchars($displayUid ?? $rawUid, ENT_QUOTES, 'UTF-8');
             <p class="text-xs text-slate-400">
                 Are you an authenticated administrator ready to associate this tag?
             </p>
-            <a href="./admin/inventory?bind_uid=<?= urlencode($normalizedUid) ?>" class="block w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-primary-600 to-cyan-500 text-white font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition duration-200">
+            <a href="<?= htmlspecialchars(($prefix ?? '') . '/admin/inventory/bind?uid=' . rawurlencode($tagRecord['uid'] ?? $normalizedUid), ENT_QUOTES) ?>" class="block w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-primary-600 to-cyan-500 text-white font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition duration-200">
                 Assign to Inventory in Admin Console
             </a>
             <a href="./" class="inline-block text-xs text-slate-500 hover:text-slate-300 underline transition duration-150 pt-2">
