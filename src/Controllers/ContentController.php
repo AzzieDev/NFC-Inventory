@@ -29,7 +29,7 @@ class ContentController
     private function requireAuth(string $basePath): ?Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
 
         if (!empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride()) {
@@ -100,7 +100,7 @@ class ContentController
     public function index(array $params = [], string $basePath = ''): Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
         $isAdmin = !empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride();
         $initialUrl = '/';
@@ -150,7 +150,7 @@ class ContentController
     public function view(array $params = [], string $basePath = ''): Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
         $isAdmin = !empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride();
         

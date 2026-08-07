@@ -26,7 +26,7 @@ class AdminController
     private function requireAuth(string $basePath): ?Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
 
         if (!empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride()) {
@@ -153,7 +153,7 @@ class AdminController
     public function browser(array $params = [], string $basePath = ''): Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
         $isAdmin = !empty($_SESSION['admin_logged_in']) || Config::isEmergencyOverride();
 
@@ -182,7 +182,7 @@ class AdminController
     public function fastBind(array $params = [], string $basePath = ''): Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
 
         if (empty($_SESSION['admin_logged_in']) && !Config::isEmergencyOverride()) {
@@ -245,7 +245,7 @@ class AdminController
     public function fastUnbind(array $params = [], string $basePath = ''): Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
 
         if (empty($_SESSION['admin_logged_in']) && !Config::isEmergencyOverride()) {
@@ -273,7 +273,7 @@ class AdminController
     public function checkDuplicateTarget(array $params = [], string $basePath = ''): Response
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['cookie_lifetime' => 2592000, 'gc_maxlifetime' => 2592000]);
         }
 
         if (empty($_SESSION['admin_logged_in']) && !Config::isEmergencyOverride()) {
