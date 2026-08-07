@@ -256,14 +256,14 @@ $totalItems = $totalItems ?? 0;
             updateRawButtons(this.value.trim());
         });
 
-        function copyRawLink() {
+        async function copyRawLink() {
             const slug = slugInput.value.trim();
             if (!slug) return;
             const canonicalUrl = window.location.origin + '/content/' + encodeURIComponent(slug).replace(/%2F/g, '/') + '/raw';
             navigator.clipboard.writeText(canonicalUrl).then(() => {
                 showToast('Copied raw gist link to clipboard!');
-            }).catch(() => {
-                prompt('Copy raw markdown Gist link:', canonicalUrl);
+            }).catch(async () => {
+                await appPrompt('Copy raw markdown Gist link:', canonicalUrl);
             });
         }
 
@@ -329,15 +329,15 @@ $totalItems = $totalItems ?? 0;
                         window.location.href = '/admin/content/edit?item=' + encodeURIComponent(data.slug).replace(/%2F/g, '/');
                     }, 800);
                 } else {
-                    alert('Error saving document: ' + (data.message || 'Unknown error'));
+                    await appAlert('Error saving document: ' + (data.message || 'Unknown error'));
                 }
             } catch (err) {
-                alert('Network error saving file: ' + err.message);
+                await appAlert('Network error saving file: ' + err.message);
             }
         }
 
         async function deleteItem(slug) {
-            if (!confirm('Are you certain you want to permanently delete "' + slug + '.md" from storage? This cannot be undone.')) {
+            if (!await appConfirm('Are you certain you want to permanently delete "' + slug + '.md" from storage? This cannot be undone.')) {
                 return;
             }
 
@@ -354,10 +354,10 @@ $totalItems = $totalItems ?? 0;
                         window.location.href = '/admin/content/edit';
                     }, 600);
                 } else {
-                    alert('Error deleting item: ' + (data.message || 'Delete failed'));
+                    await appAlert('Error deleting item: ' + (data.message || 'Delete failed'));
                 }
             } catch (err) {
-                alert('Network error during file deletion.');
+                await appAlert('Network error during file deletion.');
             }
         }
 
@@ -405,7 +405,7 @@ $totalItems = $totalItems ?? 0;
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (!file.name.endsWith('.md') && !file.name.endsWith('.txt') && !file.type.startsWith('text/')) {
-                    alert('Skipping unsupported file: ' + file.name + '. Please provide .md or text files.');
+                    await appAlert('Skipping unsupported file: ' + file.name + '. Please provide .md or text files.');
                     continue;
                 }
                 const content = await file.text();
@@ -421,10 +421,10 @@ $totalItems = $totalItems ?? 0;
                     if (data.status === 'success') {
                         uploadedCount++;
                     } else {
-                        alert('Failed to save ' + file.name + ': ' + (data.message || 'Error'));
+                        await appAlert('Failed to save ' + file.name + ': ' + (data.message || 'Error'));
                     }
                 } catch (err) {
-                    alert('Network error uploading ' + file.name);
+                    await appAlert('Network error uploading ' + file.name);
                 }
             }
 
@@ -451,5 +451,6 @@ $totalItems = $totalItems ?? 0;
             }, 3500);
         }
     </script>
+    <?php include __DIR__ . '/_modal.php'; ?>
 </body>
 </html>

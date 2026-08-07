@@ -160,7 +160,7 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                                     </a>
                                     <a 
                                         href="<?= htmlspecialchars($prefix . '/admin/inventory/delete?uid=' . rawurlencode($uid), ENT_QUOTES) ?>"
-                                        onclick="return confirm('Are you sure you want to permanently delete this tag record (<?= htmlspecialchars(addslashes($uid), ENT_QUOTES) ?>)?');"
+                                        onclick="event.preventDefault(); const target = this.href; appConfirm('Are you sure you want to permanently delete this tag record (<?= htmlspecialchars(addslashes($uid), ENT_QUOTES) ?>)?').then(res => { if(res) window.location.href = target; });"
                                         title="Permanently remove tag"
                                         class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/20 transition inline-flex items-center gap-1.5"
                                     >
@@ -186,7 +186,7 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
 
             // On desktop or non-Android browsers without Web NFC hardware sensors, allow instant manual UID entry in-place
             if (!('NDEFReader' in window)) {
-                const uid = prompt("Web NFC hardware sensor scanning requires Chrome or Edge on an Android device.\n\nTo assign or edit a tag directly from desktop right now, enter the tag UID or Slug (e.g. 04:6A:F1:A2):");
+                const uid = await appPrompt("Web NFC hardware sensor scanning requires Chrome or Edge on an Android device.\n\nTo assign or edit a tag directly from desktop right now, enter the tag UID or Slug (e.g. 04:6A:F1:A2):", "");
                 if (uid && uid.trim() !== "") {
                     window.location.href = (prefix || '') + '/admin/inventory/bind?uid=' + encodeURIComponent(uid.trim());
                 }
@@ -239,10 +239,11 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                     btnElement.classList.remove('text-emerald-400');
                     btnElement.classList.add('text-slate-400');
                 }, 2000);
-            }).catch(err => {
-                alert('Could not copy link: ' + err);
+            }).catch(async (err) => {
+                await appAlert('Could not copy link: ' + err);
             });
         }
     </script>
+    <?php include __DIR__ . '/_modal.php'; ?>
 </body>
 </html>

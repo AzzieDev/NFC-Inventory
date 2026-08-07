@@ -374,7 +374,7 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
             const btn = document.getElementById('inPageScanBtn');
 
             if (!('NDEFReader' in window)) {
-                alert('Web NFC hardware scanning requires Chrome or Edge on an Android device. On desktop, use the manual tag lookup box below.');
+                await appAlert('Web NFC hardware scanning requires Chrome or Edge on an Android device. On desktop, use the manual tag lookup box below.');
                 return;
             }
 
@@ -408,13 +408,13 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
                 });
 
             } catch (err) {
-                alert('NFC sensor activation error: ' + err.message);
+                await appAlert('NFC sensor activation error: ' + err.message);
             }
         }
 
         async function fastAssignTag() {
             if (!('NDEFReader' in window)) {
-                alert('Web NFC hardware sensing is not available in this browser. Please access via Chrome or Edge on a supported Android device.');
+                await appAlert('Web NFC hardware sensing is not available in this browser. Please access via Chrome or Edge on a supported Android device.');
                 return;
             }
 
@@ -470,7 +470,7 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
                     try {
                         let data = await sendFastBind(false);
                         if (data.status === 'already_bound') {
-                            if (confirm(data.message + "\n\nClick OK to unlink this tag from this page, or Cancel to leave it bound.")) {
+                            if (await appConfirm(data.message + "\n\nClick OK to unlink this tag from this page, or Cancel to leave it bound.")) {
                                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Unlinking...</span>';
                                 const unbindResp = await fetch('/admin/api/fast-unbind', {
                                     method: 'POST',
@@ -533,7 +533,7 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
                 };
 
             } catch (error) {
-                alert('NFC scanning error: ' + error.message);
+                await appAlert('NFC scanning error: ' + error.message);
                 btn.innerHTML = originalHtml;
                 btn.classList.remove('!bg-amber-600', '!border-amber-500', '!bg-emerald-600', '!border-emerald-500');
             }
@@ -617,5 +617,7 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
             </div>
         </div>
     </div>
+    
+    <?php include __DIR__ . '/_modal.php'; ?>
 </body>
 </html>

@@ -173,7 +173,7 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
             const btn = document.getElementById('scanBtn');
 
             if (!('NDEFReader' in window)) {
-                alert('Web NFC scanning requires Edge or Chrome on an Android device. Please use the Manual Lookup box below if you are on desktop!');
+                await appAlert('Web NFC scanning requires Edge or Chrome on an Android device. Please use the Manual Lookup box below if you are on desktop!');
                 return;
             }
 
@@ -212,7 +212,7 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
                 });
 
             } catch (error) {
-                alert('NFC Sensor Error: ' + error.message);
+                await appAlert('NFC Sensor Error: ' + error.message);
             }
         }
 
@@ -229,5 +229,6 @@ $isBindMode = isset($_GET['mode']) && (string) $_GET['mode'] === 'bind';
             }
         }
     </script>
+    <?php include __DIR__ . '/_modal.php'; ?>
 </body>
 </html>

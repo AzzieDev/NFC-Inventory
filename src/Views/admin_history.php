@@ -122,23 +122,31 @@ $logs = $logs ?? [];
                                     </td>
                                     <td class="py-3 px-4 text-right whitespace-nowrap">
                                         <?php if (!empty($log['old_target_url']) && $action !== 'reverted'): ?>
-                                            <form action="inventory/revert" method="POST" class="inline-block" onsubmit="return confirm('Restore tag <?= htmlspecialchars((string) $log['tag_uid'], ENT_QUOTES) ?> back to this previous state?');">
-                                                <input type="hidden" name="log_id" value="<?= (int) $log['id'] ?>">
-                                                <button type="submit" class="px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5">
-                                                    <i class="fa-solid fa-rotate-left"></i> <span>Revert</span>
+                                            <form action="inventory/revert" method="POST" class="inline-block" onsubmit="event.preventDefault(); const form = this; appConfirm('Restore tag <?= htmlspecialchars(addslashes((string) $log['tag_uid']), ENT_QUOTES) ?> back to this previous state?').then(res => { if(res) form.submit(); });">
+                                                <input type="hidden" name="log_id" value="<?= htmlspecialchars((string) $log['id'], ENT_QUOTES) ?>">
+                                                <button type="submit" class="text-[10px] font-bold px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500 hover:text-white transition shadow-sm inline-flex items-center gap-1">
+                                                    <i class="fa-solid fa-rotate-left"></i> Revert
                                                 </button>
                                             </form>
                                         <?php else: ?>
                                             <span class="text-gray-600 text-xs">—</span>
                                         <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="6" class="px-5 py-8 text-center text-slate-500 text-sm border-b border-slate-800">
+                                        No audit history records found yet.
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+    <?php include __DIR__ . '/_modal.php'; ?>
 </body>
 </html>
