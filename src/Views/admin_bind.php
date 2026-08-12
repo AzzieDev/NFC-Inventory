@@ -79,8 +79,8 @@ $formAction = ($basePath !== '' && $basePath !== '/' ? rtrim($basePath, '/') : '
                     <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Custom Friendly Slug / URL (Optional)</label>
                     <button type="button" onclick="generateSlug()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline"><i class="fa-solid fa-bolt"></i> Auto-Generate</button>
                 </div>
-                <input type="text" id="slugInput" name="slug" value="<?= $slugVal ?>" placeholder="e.g. storage-bin-01 or favorite-item" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-200 focus:border-indigo-500 focus:outline-none transition">
-                <p class="text-slate-500 text-xs mt-1">Visiting <code class="text-slate-400">/your-slug</code> will act as the canonical redirector.</p>
+                <input type="text" id="slugInput" name="slug" value="<?= $slugVal ?>" placeholder="e.g. storage-bin-01 or favorite-item" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-200 focus:border-indigo-500 focus:outline-none transition" oninput="document.getElementById('slugPreview').innerText = this.value.trim().replace(/^\/+/, '').replace(/\/+$/, '') ? '/' + this.value.trim().replace(/^\/+/, '').replace(/\/+$/, '') : '/your-slug'">
+                <p class="text-slate-500 text-xs mt-1">Visiting <code id="slugPreview" class="text-slate-400"><?= $slugVal ? '/' . htmlspecialchars(trim($slugVal, '/'), ENT_QUOTES) : '/your-slug' ?></code> will act as the canonical redirector.</p>
             </div>
 
             <!-- Destination Target URL -->

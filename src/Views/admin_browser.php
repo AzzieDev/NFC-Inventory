@@ -89,9 +89,15 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
                 <i class="fa-solid fa-pen"></i>
             </button>
 
-            <button id="updateTagBtn" onclick="fastAssignTag()" title="One-Tap Assign Current Page to Tag" class="h-9 px-2.5 sm:px-3.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-lg text-xs sm:text-sm whitespace-nowrap shadow flex items-center justify-center gap-1.5 shrink-0 transition border border-indigo-500">
-                <i class="fa-solid fa-wifi"></i> <span class="hidden sm:inline">Update Tag</span>
-            </button>
+            <?php if ($contentIndex !== null): ?>
+                <button id="topScanBtn" onclick="startInPageTagScan()" title="Scan physical tag to read" class="h-9 px-2.5 sm:px-3.5 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-semibold rounded-lg text-xs sm:text-sm whitespace-nowrap shadow flex items-center justify-center gap-1.5 shrink-0 transition border border-cyan-500">
+                    <i class="fa-solid fa-tower-broadcast"></i> <span class="hidden sm:inline">Scan Tag</span>
+                </button>
+            <?php else: ?>
+                <button id="updateTagBtn" onclick="fastAssignTag()" title="One-Tap Assign Current Page to Tag" class="h-9 px-2.5 sm:px-3.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-lg text-xs sm:text-sm whitespace-nowrap shadow flex items-center justify-center gap-1.5 shrink-0 transition border border-indigo-500">
+                    <i class="fa-solid fa-link"></i> <span class="hidden sm:inline">Update Tag</span>
+                </button>
+            <?php endif; ?>
 
             <a href="/admin" title="Admin Inventory Dashboard" class="h-9 w-9 sm:w-auto sm:px-3 bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-300 hover:text-white rounded-lg border border-gray-700 transition flex items-center justify-center gap-1.5 shrink-0 text-xs sm:text-sm font-medium shadow-sm">
                 <i class="fa-solid fa-gauge-high"></i><span class="hidden md:inline">Dashboard</span>
@@ -135,7 +141,7 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
                             <p id="inPageScanFeedback" class="text-xs text-emerald-400 font-mono pt-1 hidden animate-pulse"></p>
                         </div>
                         <button id="inPageScanBtn" type="button" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 group-hover:brightness-110 active:scale-95 text-white font-bold text-sm sm:text-base shadow-lg transition flex items-center justify-center gap-2.5 shrink-0 pointer-events-none sm:pointer-events-auto">
-                            <i class="fa-solid fa-wifi"></i> <span>Scan Tag</span>
+                            <i class="fa-solid fa-tower-broadcast"></i> <span>Scan Tag</span>
                         </button>
                     </div>
 
@@ -361,9 +367,10 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
 
         function handleManualLookup(e) {
             e.preventDefault();
-            const val = document.getElementById('manualTagInput').value.trim();
-            if (val) {
-                window.location.href = '/' + encodeURIComponent(val);
+            let uid = document.getElementById('manualTagInput').value.trim();
+            uid = uid.replace(/^\/+/, '').replace(/\/+$/, '');
+            if (uid) {
+                window.location.href = '/' + encodeURIComponent(uid);
             }
         }
 
@@ -419,7 +426,7 @@ $isNativeView = ($contentIndex !== null || $nativeHtml !== null);
             }
 
             const btn = document.getElementById('updateTagBtn');
-            const originalHtml = '<i class="fa-solid fa-wifi"></i> <span class="hidden sm:inline">Update Tag</span>';
+            const originalHtml = '<i class="fa-solid fa-link"></i> <span class="hidden sm:inline">Update Tag</span>';
             
             try {
                 const ndef = new NDEFReader();

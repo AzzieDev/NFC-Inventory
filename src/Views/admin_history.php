@@ -134,12 +134,6 @@ $logs = $logs ?? [];
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="6" class="px-5 py-8 text-center text-slate-500 text-sm border-b border-slate-800">
-                                        No audit history records found yet.
-                                    </td>
-                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>

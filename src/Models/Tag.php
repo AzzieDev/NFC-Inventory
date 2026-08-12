@@ -81,6 +81,12 @@ class Tag
                 $friendlyName = null;
             }
         }
+        if ($slug !== null) {
+            $conflict = $this->findByUidOrSlug($slug);
+            if ($conflict !== null && $conflict['uid'] !== $normalizedUid) {
+                throw new \Exception("The slug '{$slug}' is already assigned to another tag ({$conflict['uid']}). Please choose a unique slug.");
+            }
+        }
 
         $existing = $this->findByUidOrSlug($normalizedUid);
         $action = ($existing === null) ? 'assigned' : 'updated';
@@ -126,11 +132,11 @@ class Tag
         $normalizedUid = TagHelper::normalizeUid($rawUid);
         $existing = $this->findByUidOrSlug($normalizedUid);
         
-        $stmt = $this->db->prepare("UPDATE tags SET post_id = NULL, target_url = NULL, status = 'available' WHERE uid = :uid");
+        $stmt = $this->db->prepare("UPDATE tags SET post_id = NULL, target_url = NULL, friendly_name = 'Unassigned', status = 'available' WHERE uid = :uid");
         $result = $stmt->execute([':uid' => $normalizedUid]);
 
         if ($result && $existing !== null && ($existing['target_url'] !== null || $existing['post_id'] !== null)) {
-            $this->recordActivity($existing['uid'], 'unassigned', $existing['target_url'], null, $existing['friendly_name'], $existing['friendly_name']);
+            $this->recordActivity($existing['uid'], 'unassigned', $existing['target_url'], null, $existing['friendly_name'], 'Unassigned');
         }
 
         return $result;
@@ -180,8 +186,27 @@ class Tag
                 ':old_name' => $oldName,
                 ':new_name' => $newName
             ]);
+
+            // Prune history: keep only the 3 most recent log entries for this specific tag
+            // Nested subquery resolves MySQL's 'cannot specify target table for update' limitation
+            $stmtPrune = $this->db->prepare("
+                DELETE FROM tag_activity_logs 
+                WHERE tag_uid = :uid 
+                AND id NOT IN (
+                    SELECT id FROM (
+                        SELECT id FROM tag_activity_logs 
+                        WHERE tag_uid = :uid_sub 
+                        ORDER BY created_at DESC, id DESC 
+                        LIMIT 3
+                    ) as keep_ids
+                )
+            ");
+            $stmtPrune->execute([
+                ':uid' => $uid, 
+                ':uid_sub' => $uid
+            ]);
         } catch (\PDOException $e) {
-            // Suppress log insert errors during schema transitions
+            // Suppress log errors during schema transitions
         }
     }
 
@@ -305,6 +330,7 @@ class Tag
     public function findTagsByTargetUrl(string $targetUrl, string $excludeUid = ''): array
     {
         try {
+            $excludeUid = $excludeUid !== '' ? TagHelper::normalizeUid($excludeUid) : '';
             $cleanTarget = rtrim(trim($targetUrl), '/');
             if ($cleanTarget === '' || $cleanTarget === 'http:' || $cleanTarget === 'https:') {
                 return [];

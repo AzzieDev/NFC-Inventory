@@ -66,7 +66,7 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
                     <i class="fa-solid fa-clock-rotate-left"></i> <span>Activity Logs</span>
                 </a>
                 <button id="adminScanBtn" onclick="triggerAdminNfcScan()" class="text-xs text-white px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:brightness-110 font-bold transition shadow-lg flex items-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-wifi"></i> <span>Tap to Assign or Edit Tag</span>
+                    <i class="fa-solid fa-link"></i> <span>Tap to Assign or Edit Tag</span>
                 </button>
                 <a href="<?= htmlspecialchars($prefix . '/logout', ENT_QUOTES) ?>" class="text-xs text-red-400 hover:text-red-300 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 transition font-semibold">
                     Logout
@@ -186,9 +186,12 @@ $prefix = isset($basePath) && $basePath !== '' && $basePath !== '/' ? rtrim($bas
 
             // On desktop or non-Android browsers without Web NFC hardware sensors, allow instant manual UID entry in-place
             if (!('NDEFReader' in window)) {
-                const uid = await appPrompt("Web NFC hardware sensor scanning requires Chrome or Edge on an Android device.\n\nTo assign or edit a tag directly from desktop right now, enter the tag UID or Slug (e.g. 04:6A:F1:A2):", "");
-                if (uid && uid.trim() !== "") {
-                    window.location.href = (prefix || '') + '/admin/inventory/bind?uid=' + encodeURIComponent(uid.trim());
+                const uid = await appPrompt("Web NFC hardware sensor scanning requires Chrome or Edge on an Android device.\n\nTo assign or edit a tag directly from desktop right now, enter the tag UID or Slug (e.g. 04:6A:F1:A2 or shelf-01):", "");
+                if (uid) {
+                    let cleanUid = uid.trim().replace(/^\/+/, '').replace(/\/+$/, '');
+                    if (cleanUid) {
+                        window.location.href = (prefix || '') + '/admin/inventory/bind?bind_uid=' + encodeURIComponent(cleanUid);
+                    }
                 }
                 return;
             }

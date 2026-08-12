@@ -8,6 +8,13 @@ declare(strict_types=1);
 // Define global application execution root (security shield for included config/secrets)
 define('APP_ROOT', __DIR__);
 
+// Prevent OS garbage collection from purging persistent application sessions
+$sessionPath = APP_ROOT . '/.sessions';
+if (!is_dir($sessionPath)) {
+    @mkdir($sessionPath, 0777, true);
+}
+session_save_path($sessionPath);
+
 // Verify composer dependencies are present
 if (!file_exists(APP_ROOT . '/vendor/autoload.php')) {
     http_response_code(500);

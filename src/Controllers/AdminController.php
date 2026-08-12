@@ -95,7 +95,7 @@ class AdminController
         }
 
         $uid = trim((string) ($_POST['uid'] ?? ''));
-        $slug = trim((string) ($_POST['slug'] ?? ''));
+        $slug = trim(trim((string) ($_POST['slug'] ?? '')), '/');
         $targetUrl = trim((string) ($_POST['target_url'] ?? ''));
         $friendlyName = trim((string) ($_POST['friendly_name'] ?? ''));
 
@@ -114,14 +114,38 @@ class AdminController
         }
 
         // Save tag in database repository using positional parameter sign-off
-        $this->tagRepository->save(
-            $uid,
-            null,
-            $friendlyName,
-            'active',
-            $slug,
-            $targetUrl
-        );
+        try {
+            $this->tagRepository->save(
+                $uid,
+                null,
+                $friendlyName,
+                'active',
+                $slug,
+                $targetUrl
+            );
+        } catch (\Exception $e) {
+            return Response::html('
+                <!DOCTYPE html>
+                <html lang="en" class="dark">
+                <head>
+                    <title>Submission Error</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                    <style>body { background-color: #0b0d14; }</style>
+                </head>
+                <body class="text-slate-100 p-8 flex items-center justify-center min-h-screen font-sans">
+                    <main class="max-w-md w-full bg-slate-900 border border-amber-500/30 rounded-2xl p-8 space-y-4 shadow-xl text-center">
+                        <div class="text-amber-400 text-5xl mb-2"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <h1 class="text-2xl font-bold text-white tracking-wide">Duplicate Slug</h1>
+                        <p class="text-slate-300 text-sm leading-relaxed">' . htmlspecialchars($e->getMessage(), ENT_QUOTES) . '</p>
+                        <div class="pt-4">
+                            <a href="javascript:history.back()" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-semibold transition shadow-lg"><i class="fa-solid fa-arrow-left"></i> Go Back and Change Slug</a>
+                        </div>
+                    </main>
+                </body>
+                </html>
+            ', 400);
+        }
 
         $prefix = ($basePath !== '' && $basePath !== '/') ? rtrim($basePath, '/') : '';
         

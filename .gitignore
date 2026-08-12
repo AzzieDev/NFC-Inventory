@@ -13,3 +13,6 @@ secrets.php
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Application specific
+.sessions/
